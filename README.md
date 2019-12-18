@@ -1,6 +1,6 @@
 # downdrag
 
-Webscraping done thoroughly. Python web scraping tool using lxml and configured by Confuse.
+Webscraping done thoroughly. Python web scraping tool using [lxml](https://lxml.de/) and configured by [Confuse](https://confuse.readthedocs.io/en/latest/).
 
 ## model
 
