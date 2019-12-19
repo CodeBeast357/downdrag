@@ -4,7 +4,7 @@ Webscraping done thoroughly. Python web scraping tool using [lxml](https://lxml.
 
 ## model
 
-The harvested information if first structured by those main fields:
+The harvested information is first structured by those main fields:
 
 - itemindex
 - source
