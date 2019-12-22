@@ -364,7 +364,7 @@ def execute(config):
             if conversionprocess == CONVERSION_VALUE:
               matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
             elif conversionprocess == CONVERSION_CALCULATE:
-              matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % matches) if matches else truedefault
+              matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
             else:
               raise KeyError(conversionprocess)
             gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
