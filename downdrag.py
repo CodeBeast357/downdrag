@@ -271,7 +271,7 @@ def execute(config):
           link = str(item.xpath('descendant::a')[0].attrib['href'])
           child = get(link)
           infos = html.fromstring(child.content)
-          name = str(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
+          name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
 
           features = infos.xpath(scrape_profile[KEY_FEATURES])
           feature_items = []
@@ -305,7 +305,7 @@ def execute(config):
               for line in extract:
                 if target_found:
                   if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
-                    extrainfo = str(line)
+                    extrainfo = cleanvalue(line)
                     break
                 else:
                   if line.upper().find(' '.join(target_items)) != -1:
@@ -313,11 +313,11 @@ def execute(config):
                   elif line.upper().find(''.join(target_items)) != -1:
                     target_found = True
             elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-              extrainfo = str(target_details.xpath(extractvalue % name)[0])
+              extrainfo = cleanvalue(target_details.xpath(extractvalue % name)[0])
             else:
               raise KeyError(extractmethod)
           elif evaluatortarget == TARGET_INDEX:
-            extrainfo = str(item.xpath(extractvalue)[0])
+            extrainfo = cleanvalue(item.xpath(extractvalue)[0])
           else:
             raise KeyError(evaluatortarget)
         except:
@@ -426,6 +426,9 @@ def parseschedule(matches):
     if len(matches) > 1:
       end = parseTimevalue(matches[1], start)
   return (start, end)
+
+def cleanvalue(value):
+  return str(value).strip()
 
 if __name__ == "__main__":
   from confuse import Configuration
