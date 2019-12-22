@@ -112,13 +112,13 @@ There's currently three types of output available:
 
 Each of the gathered information can be modelled by:
 
-- type: save method
+- type: choice of save method
   - string (default)
   - int
   - float
 - default: otherwise the type's default
 - conversion: collection configuriton
-  - process:
+  - process: choice of harvesting method
     - value: harvest directly
     - calculate: math formula from regex groups
     - layer: formula from previous fields
@@ -137,12 +137,12 @@ Multiple websites can be scraped.
 - features: XPath list of sub-elements
 - evaluator: Regex to cleanup the value
 - pathfinder: additional infos
-  - target: source of the infos
+  - target: choice of source for the infos
     - current
     - external
     - index: items list page
   - link: for external target
-  - type: format of the into, except for index
+  - type: choice of format for the into, except for index
     - fulltext: simple text
     - showcase: html presentation
   - pattern: except for index or showcase, currently only datetimes are used
