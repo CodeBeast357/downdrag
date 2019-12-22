@@ -76,8 +76,20 @@ profiles:
     pathfinder:
       target: external
       link: https://warehouse.com/deliveries/
+      type: fulltext
       pattern: '%D'
-    extractor: //div[@id="daily-schedules"]/descendant::text()
+      indexer: startwith
+      value: //div[@id="daily-schedules"]/descendant::text()
+  library:
+    url: https://library.com/
+    items: //div[@class="item-book-info"]
+    name: //div[@class="item-book-name"]/text()
+    features: //div[@class="item-book-features"]/text()
+    evaluator: ^\s*\w+: (.+)\s*$
+    pathfinder:
+      target: current
+      type: showcase
+      value: //div[@id="daily-signings"]/div[@id="%s"]/descendant::text()
 
 ```
 
@@ -128,7 +140,11 @@ Multiple websites can be scraped.
   - target: source of the infos
     - current
     - external
-    - index
-  - pattern: except for index, currently only datetimes are used
+    - index: items list page
   - link: for external target
-- extractor: XPath text value
+  - type: format of the into, except for index
+    - fulltext: simple text
+    - showcase: html presentation
+  - pattern: except for index or showcase, currently only datetimes are used
+  - indexer: string method for matching if fulltext
+  - value: XPath text value, parametrized with name if showcase

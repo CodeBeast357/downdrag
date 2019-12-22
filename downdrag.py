@@ -36,7 +36,9 @@ KEY_EVALUATOR_LINK = 'link'
 KEY_PATHFINDER = 'pathfinder'
 KEY_PATHFINDER_TARGET = 'target'
 KEY_PATHFINDER_PATTERN = 'pattern'
-KEY_EXTRACTOR = 'extractor'
+KEY_PATHFINDER_INDEXER = 'indexer'
+KEY_PATHFINDER_TYPE = 'type'
+KEY_PATHFINDER_VALUE = 'value'
 USAGE_TYPES_MULTIPART = { 'schedule': ['%s start', '%s end'] }
 MAIN_FIELDS = ['itemindex', 'source', 'index', 'name', 'description', 'extrainfo', 'link']
 TARGET_CURRENT = 'current'
@@ -49,6 +51,8 @@ CONVERSION_VALUE = 'value'
 CONVERSION_CALCULATE = 'calculate'
 CONVERSION_LAYER = 'layer'
 CONVERSION_SCHEDULE = 'schedule'
+PATHFINDER_TYPE_FULLTEXT = 'fulltext'
+PATHFINDER_TYPE_SHOWCASE = 'showcase'
 
 class ResultsWriter(object):
   def __init__(self, config):
@@ -284,26 +288,36 @@ def execute(config):
           target_details = infos
           evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
           isexternaltarget = evaluatortarget == TARGET_EXTERNAL
+          extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
           if isexternaltarget:
             target_child = get(pathfinder[KEY_EVALUATOR_LINK])
             target_details = html.fromstring(target_child.content)
           if isexternaltarget or evaluatortarget == TARGET_CURRENT:
-            extract = target_details.xpath(scrape_profile[KEY_EXTRACTOR])
-            target = now.strftime(pathfinder[KEY_PATHFINDER_PATTERN])
-            target_items = target.upper().split()
-            target_found = False
-            for line in extract:
-              if target_found:
-                if (isexternaltarget and line.startswith(name.upper())) or (not isexternaltarget and line.strip() != ''):
-                  extrainfo = str(line)
-                  break
-              else:
-                if line.upper().find(' '.join(target_items)) != -1:
-                  target_found = True
-                elif line.upper().find(''.join(target_items)) != -1:
-                  target_found = True
+            extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
+            if extractmethod == PATHFINDER_TYPE_FULLTEXT:
+              indexername = pathfinder[KEY_PATHFINDER_INDEXER]
+              if not hasattr('', indexername):
+                raise KeyError(indexername)
+              extract = target_details.xpath(extractvalue)
+              target = now.strftime(pathfinder[KEY_PATHFINDER_PATTERN])
+              target_items = target.upper().split()
+              target_found = False
+              for line in extract:
+                if target_found:
+                  if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
+                    extrainfo = str(line)
+                    break
+                else:
+                  if line.upper().find(' '.join(target_items)) != -1:
+                    target_found = True
+                  elif line.upper().find(''.join(target_items)) != -1:
+                    target_found = True
+            elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
+              extrainfo = str(target_details.xpath(extractvalue % name)[0])
+            else:
+              raise KeyError(extractmethod)
           elif evaluatortarget == TARGET_INDEX:
-            extrainfo = str(item.xpath(scrape_profile[KEY_EXTRACTOR])[0])
+            extrainfo = str(item.xpath(extractvalue)[0])
           else:
             raise KeyError(evaluatortarget)
         except:
