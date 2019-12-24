@@ -353,9 +353,11 @@ def execute(config):
           detailsconversion = detail[KEY_DETAILS_CONVERSION]
           conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
           if conversionprocess == CONVERSION_LAYER:
-            value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
+            try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
+            except: value = truedefault
           elif conversionprocess == CONVERSION_SCHEDULE:
-            value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
+            try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
+            except: value = truedefault
             oldwriter = writer
             writer = lambda values: list(map(oldwriter, values))
           else:
@@ -370,7 +372,8 @@ def execute(config):
             gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
             value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
             if gotmatch:
-              value = matchconverter(gotmatch.groups())
+              try: value = matchconverter(gotmatch.groups())
+              except: value = truedefault
           detailvalues[detailname] = value
           writer(value)
 
