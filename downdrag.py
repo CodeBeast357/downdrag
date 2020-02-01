@@ -29,6 +29,7 @@ KEY_HTML_STYLES = 'styles'
 KEY_URL = 'url'
 KEY_PAGERS = 'pagers'
 KEY_ITEMS = 'items'
+KEY_INFOS = 'infos'
 KEY_NAME = 'name'
 KEY_FEATURES = 'features'
 KEY_EVALUATOR = 'evaluator'
@@ -268,7 +269,8 @@ def execute(config):
       for item in data:
         if item is None: continue
         try:
-          link = str(item.xpath('descendant::a')[0].attrib['href'])
+          linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
+          link = str(item.xpath(linkinfos)[0].attrib['href'])
           child = get(link)
           infos = html.fromstring(child.content)
           name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])

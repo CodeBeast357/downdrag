@@ -83,6 +83,7 @@ profiles:
   library:
     url: https://library.com/
     items: //div[@class="item-book-info"]
+    infos: //a[@class="item-details"]
     name: //div[@class="item-book-name"]/text()
     features: //div[@class="item-book-features"]/text()
     evaluator: ^\s*\w+: (.+)\s*$
@@ -133,6 +134,7 @@ Multiple websites can be scraped.
 
 - url: index page of the items
 - items: XPath list of elements
+- infos: XPath of link to the element's details (defaults to the first link within the element)
 - name: XPath text value
 - features: XPath list of sub-elements
 - evaluator: Regex to cleanup the value
