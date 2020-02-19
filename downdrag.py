@@ -1,5 +1,5 @@
 from requests import get
-from re import search, findall, IGNORECASE
+from re import search, match as test, findall, IGNORECASE
 from lxml import html
 from datetime import datetime
 
@@ -39,6 +39,7 @@ KEY_PATHFINDER_TARGET = 'target'
 KEY_PATHFINDER_PATTERN = 'pattern'
 KEY_PATHFINDER_INDEXER = 'indexer'
 KEY_PATHFINDER_TYPE = 'type'
+KEY_PATHFINDER_FORMAT = 'format'
 KEY_PATHFINDER_VALUE = 'value'
 USAGE_TYPES_MULTIPART = { 'schedule': ['%s start', '%s end'] }
 MAIN_FIELDS = ['itemindex', 'source', 'index', 'name', 'description', 'extrainfo', 'link']
@@ -54,6 +55,8 @@ CONVERSION_LAYER = 'layer'
 CONVERSION_SCHEDULE = 'schedule'
 PATHFINDER_TYPE_FULLTEXT = 'fulltext'
 PATHFINDER_TYPE_SHOWCASE = 'showcase'
+PATHFINDER_FORMAT_NOW = 'now'
+PATHFINDER_FORMAT_LIST = 'list'
 
 class ResultsWriter(object):
   def __init__(self, config):
@@ -301,19 +304,35 @@ def execute(config):
               if not hasattr('', indexername):
                 raise KeyError(indexername)
               extract = target_details.xpath(extractvalue)
-              target = now.strftime(pathfinder[KEY_PATHFINDER_PATTERN])
-              target_items = target.upper().split()
-              target_found = False
-              for line in extract:
-                if target_found:
-                  if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
-                    extrainfo = cleanvalue(line)
-                    break
-                else:
-                  if line.upper().find(' '.join(target_items)) != -1:
+              target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
+              target_format = pathfinder[KEY_PATHFINDER_FORMAT]
+              if target_format == PATHFINDER_FORMAT_NOW:
+                target = now.strftime(target_pattern)
+                target_items = target.upper().split()
+                target_found = False
+                for line in extract:
+                  if target_found:
+                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
+                      extrainfo = cleanvalue(line)
+                      break
+                  else:
+                    if line.upper().find(' '.join(target_items)) != -1:
+                      target_found = True
+                    elif line.upper().find(''.join(target_items)) != -1:
+                      target_found = True
+              elif target_format == PATHFINDER_FORMAT_LIST:
+                target_found = False
+                extrainfo_line = ''
+                for line in extract:
+                  if target_found:
+                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
+                      extrainfo += '%s: %s\n' % tuple(cleanvalue(infoitem) for infoitem in [extrainfo_line, line])
+                      target_found = False
+                  if test(target_pattern, line):
+                    extrainfo_line = line
                     target_found = True
-                  elif line.upper().find(''.join(target_items)) != -1:
-                    target_found = True
+              else:
+                raise KeyError(target_format)
             elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
               extrainfo = cleanvalue(target_details.xpath(extractvalue % name)[0])
             else:

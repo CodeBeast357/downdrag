@@ -147,6 +147,9 @@ Multiple websites can be scraped.
   - type: choice of format for the into, except for index
     - fulltext: simple text
     - showcase: html presentation
-  - pattern: except for index or showcase, currently only datetimes are used
+  - pattern: except for index or showcase
+  - format: choice for structure of the infos
+    - now: current date and time
+    - list: enumeration of items
   - indexer: string method for matching the line if external and fulltext
   - value: XPath text value, parametrized with name if showcase
