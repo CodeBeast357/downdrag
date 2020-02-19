@@ -148,5 +148,5 @@ Multiple websites can be scraped.
     - fulltext: simple text
     - showcase: html presentation
   - pattern: except for index or showcase, currently only datetimes are used
-  - indexer: string method for matching if fulltext
+  - indexer: string method for matching the line if external and fulltext
   - value: XPath text value, parametrized with name if showcase
