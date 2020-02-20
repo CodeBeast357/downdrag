@@ -311,9 +311,10 @@ def execute(config):
                 target_items = target.upper().split()
                 target_found = False
                 for line in extract:
+                  line = cleanvalue(line)
                   if target_found:
-                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
-                      extrainfo = cleanvalue(line)
+                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                      extrainfo = line
                       break
                   else:
                     if line.upper().find(' '.join(target_items)) != -1:
@@ -324,9 +325,10 @@ def execute(config):
                 target_found = False
                 extrainfo_line = ''
                 for line in extract:
+                  line = cleanvalue(line)
                   if target_found:
-                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line.strip() != ''):
-                      extrainfo += '%s: %s\n' % tuple(cleanvalue(infoitem) for infoitem in [extrainfo_line, line])
+                    if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                      extrainfo += '%s: %s\n' % (extrainfo_line, line)
                       target_found = False
                   if test(target_pattern, line):
                     extrainfo_line = line
