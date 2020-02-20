@@ -190,7 +190,7 @@ class HtmlResultsWriter(ResultsWriter):
         <td>%i</td>""" % index)
   def write_string(self, value):
     self.output.write("""
-        <td>%s</td>""" % value)
+        <td>%s</td>""" % str(value).replace('\n', '<br/>'))
   def write_int(self, value):
     self.output.write("""
         <td>%i</td>""" % value)
