@@ -354,7 +354,7 @@ def execute(config):
         output.write_string(link)
 
         detailvalues = {}
-        for detailname, detail in config[KEY_DETAILS].items():
+        for detailname, detail in (config[KEY_DETAILS] if KEY_DETAILS in config else {}).items():
           detailsource = description
           if KEY_DETAILS_SOURCE in detail:
             detailsource = locals()[detail[KEY_DETAILS_SOURCE]]

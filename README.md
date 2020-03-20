@@ -109,7 +109,7 @@ There's currently three types of output available:
   - connectionsinfos: dict of [connect args](https://dev.mysql.com/doc/connector-python/en/connector-python-connectargs.html)
   - tablename
 
-### details
+### details (optional)
 
 Each of the gathered information can be modelled by:
 
