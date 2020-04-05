@@ -16,6 +16,7 @@ KEY_DETAILS_SOURCE = 'source'
 KEY_PROFILES = 'profiles'
 KEY_SCRAPE_TARGET = 'scrape_target'
 KEY_QUERIER = 'querier'
+KEY_QUERIER_MODE = 'mode'
 KEY_OUTPUTS = 'outputs'
 KEY_CSV = 'csv'
 KEY_CSV_FILENAME = 'filename'
@@ -70,7 +71,7 @@ class DataQuerier(object):
     raise NotImplementedError
   @staticmethod
   def Create(config):
-    querier = config[KEY_QUERIER] if KEY_QUERIER in config else QUERIER_PLAIN
+    querier = config[KEY_QUERIER][KEY_QUERIER_MODE] if KEY_QUERIER in config else QUERIER_PLAIN
     if querier == QUERIER_SECURE: return SecureDataQuerier()
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
     else: raise KeyError(querier)
