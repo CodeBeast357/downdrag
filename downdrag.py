@@ -72,8 +72,8 @@ class DataQuerier(object):
   def Create(config):
     querier = config[KEY_QUERIER] if KEY_QUERIER in config else QUERIER_PLAIN
     if querier == QUERIER_SECURE: return SecureDataQuerier()
-    elif querier != QUERIER_PLAIN: raise KeyError(querier)
-    else: return PlainDataQuerier()
+    elif querier == QUERIER_PLAIN: return PlainDataQuerier()
+    else: raise KeyError(querier)
 
 class PlainDataQuerier(DataQuerier):
   def __enter__(self):
