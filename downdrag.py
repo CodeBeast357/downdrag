@@ -63,30 +63,61 @@ PATHFINDER_FORMAT_NOW = 'now'
 PATHFINDER_FORMAT_LIST = 'list'
 
 class DataQuerier(object):
+  def __init__(self, getter):
+    self.__getter = getter
   def __enter__(self):
     raise NotImplementedError
   def __exit__(self, type, value, tb):
     raise NotImplementedError
-  def get(self, url):
-    raise NotImplementedError
+  def pages(self, scrape_profile):
+    url = scrape_profile[KEY_URL]
+    tree = html.fromstring(self.__getter(url).content)
+    data = DataQuerier.StaticData(tree, self.__getter, url)
+    yield data
+    if KEY_PAGERS not in scrape_profile: return
+    while True:
+      pagers = tree.xpath(scrape_profile[KEY_PAGERS])
+      if pagers:
+        url = data.rebase_link(str(pagers[0].attrib['href']))
+        tree = html.fromstring(self.__getter(url).content)
+        data = DataQuerier.StaticData(tree, self.__getter, url)
+        yield data
+      else:
+        break
   @staticmethod
   def Create(config):
     querier = config[KEY_QUERIER][KEY_QUERIER_MODE] if KEY_QUERIER in config else QUERIER_PLAIN
     if querier == QUERIER_SECURE: return SecureDataQuerier()
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
     else: raise KeyError(querier)
+  class StaticData(object):
+    def __init__(self, tree, getter, url):
+      self.__tree = tree
+      self.__getter = getter
+      self.__url = url
+    def rebase_link(self, link):
+      if link.startswith('#'):
+        link = self.__url + link
+      else:
+        link = urljoin(self.__url, link)
+      return link
+    def xpath(self, query):
+      return self.__tree.xpath(query)
+    def get(self, link):
+      return html.fromstring(self.__getter(self.rebase_link(link)).content)
 
 class PlainDataQuerier(DataQuerier):
-  def __enter__(self):
+  def __init__(self):
     from requests import get
-    self.getter = get
+    super().__init__(get)
+  def __enter__(self):
     return self
   def __exit__(self, type, value, tb):
     pass
-  def get(self, url):
-    return html.fromstring(self.getter(url).content)
 
 class SecureDataQuerier(DataQuerier):
+  def __init__(self):
+    super().__init__(None)
   def __enter__(self):
     from requests import Session
     from torpy import TorClient
@@ -98,12 +129,11 @@ class SecureDataQuerier(DataQuerier):
     self.request.headers.update({'User-Agent': 'Mozilla/5.0'})
     self.request.mount('http://', self.adapter)
     self.request.mount('https://', self.adapter)
+    self.__getter = self.request.get
     return self
   def __exit__(self, type, value, tb):
     self.request.close()
     self.guard.close()
-  def get(self, url):
-    return html.fromstring(self.request.get(url).content)
 
 class ResultsWriter(object):
   def __init__(self, config):
@@ -279,13 +309,6 @@ class PipelineResultsWriter(object):
     for item in self.pipeline:
       item.end_item()
 
-def parse_link(url, link):
-  if link.startswith('#'):
-    link = url + link
-  else:
-    link = urljoin(url, link)
-  return link
-
 def execute(config):
   now = datetime.now()
   profiles = config[KEY_PROFILES]
@@ -294,167 +317,141 @@ def execute(config):
       itemindex = 0
       for scrape_target, scrape_profile in profiles.items():
         pathfinder = scrape_profile[KEY_PATHFINDER]
+        for page in querier.pages(scrape_profile):
+          data = page.xpath(scrape_profile[KEY_ITEMS])
+          index = 0
+          for item in data:
+            if item is None: continue
+            try:
+              linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
+              link = str(item.xpath(linkinfos)[0].attrib['href'])
+              infos = page.get(link)
+              name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
 
-        url = scrape_profile[KEY_URL]
-        tree = querier.get(url)
+              features = infos.xpath(scrape_profile[KEY_FEATURES])
+              feature_items = []
+              for feat in features:
+                if feat is None: continue
+                match = search(scrape_profile[KEY_EVALUATOR], feat)
+                if not match: continue
+                value = match.group(1).replace('-', ',').strip()
+                if value.strip() != '':
+                  feature_items.append(value)
+              description = ','.join(feature_items)
 
-        # if KEY_PAGERS in scrape_profile:
-        #   pagers = tree.xpath(scrape_profile[KEY_PAGERS])
-        #   if pagers:
-        #     from selenium.webdriver import Chrome as driver, ChromeOptions as options
-        #     args = options()
-        #     args.add_argument('--incognito')
-        #     args.headless = True
-        #     with driver(options=args) as drive:
-        #       drive.get(url)
-        #       while True:
-        #         tabs = drive.find_elements_by_xpath(scrape_profile[KEY_PAGERS])
-        #         old_tabs = []
-        #         for act in tabs:
-        #           if act.value_of_css_property('display') == 'none':
-        #             old_tabs.append(act)
-        #         tabs = set(tabs) - set(old_tabs)
-        #         if not tabs:
-        #           break
-        #         for act in tabs:
-        #           act.click()
-        #       page_content = drive.find_element_by_tag_name('html')
-        #       tree = html.fromstring(page_content.get_attribute('outerHTML'))
-
-        data = tree.xpath(scrape_profile[KEY_ITEMS])
-        index = 0
-        for item in data:
-          if item is None: continue
-          try:
-            linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
-            link = parse_link(url, str(item.xpath(linkinfos)[0].attrib['href']))
-            infos = querier.get(link)
-            name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
-
-            features = infos.xpath(scrape_profile[KEY_FEATURES])
-            feature_items = []
-            for feat in features:
-              if feat is None: continue
-              match = search(scrape_profile[KEY_EVALUATOR], feat)
-              if not match: continue
-              value = match.group(1).replace('-', ',').strip()
-              if value.strip() != '':
-                feature_items.append(value)
-            description = ','.join(feature_items)
-
-            extrainfo = ''
-            target_details = infos
-            evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
-            isexternaltarget = evaluatortarget == TARGET_EXTERNAL
-            extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
-            if isexternaltarget:
-              target_details = querier.get(pathfinder[KEY_EVALUATOR_LINK])
-            if isexternaltarget or evaluatortarget == TARGET_CURRENT:
-              extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
-              if extractmethod == PATHFINDER_TYPE_FULLTEXT:
-                indexername = pathfinder[KEY_PATHFINDER_INDEXER]
-                if not hasattr('', indexername):
-                  raise KeyError(indexername)
-                extract = target_details.xpath(extractvalue)
-                target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
-                target_format = pathfinder[KEY_PATHFINDER_FORMAT]
-                if target_format == PATHFINDER_FORMAT_NOW:
-                  target = now.strftime(target_pattern)
-                  target_items = target.upper().split()
-                  target_found = False
-                  for line in extract:
-                    line = cleanvalue(line)
-                    if target_found:
-                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                        extrainfo = line
-                        break
-                    else:
-                      if line.upper().find(' '.join(target_items)) != -1:
+              extrainfo = ''
+              target_details = infos
+              evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
+              isexternaltarget = evaluatortarget == TARGET_EXTERNAL
+              extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
+              if isexternaltarget:
+                target_details = page.get(pathfinder[KEY_EVALUATOR_LINK])
+              if isexternaltarget or evaluatortarget == TARGET_CURRENT:
+                extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
+                if extractmethod == PATHFINDER_TYPE_FULLTEXT:
+                  indexername = pathfinder[KEY_PATHFINDER_INDEXER]
+                  if not hasattr('', indexername):
+                    raise KeyError(indexername)
+                  extract = target_details.xpath(extractvalue)
+                  target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
+                  target_format = pathfinder[KEY_PATHFINDER_FORMAT]
+                  if target_format == PATHFINDER_FORMAT_NOW:
+                    target = now.strftime(target_pattern)
+                    target_items = target.upper().split()
+                    target_found = False
+                    for line in extract:
+                      line = cleanvalue(line)
+                      if target_found:
+                        if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                          extrainfo = line
+                          break
+                      else:
+                        if line.upper().find(' '.join(target_items)) != -1:
+                          target_found = True
+                        elif line.upper().find(''.join(target_items)) != -1:
+                          target_found = True
+                  elif target_format == PATHFINDER_FORMAT_LIST:
+                    target_found = False
+                    extrainfo_line = ''
+                    for line in extract:
+                      line = cleanvalue(line)
+                      if target_found:
+                        if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                          extrainfo += '%s: %s\n' % (extrainfo_line, line)
+                          target_found = False
+                      if test(target_pattern, line):
+                        extrainfo_line = line
                         target_found = True
-                      elif line.upper().find(''.join(target_items)) != -1:
-                        target_found = True
-                elif target_format == PATHFINDER_FORMAT_LIST:
-                  target_found = False
-                  extrainfo_line = ''
-                  for line in extract:
-                    line = cleanvalue(line)
-                    if target_found:
-                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                        extrainfo += '%s: %s\n' % (extrainfo_line, line)
-                        target_found = False
-                    if test(target_pattern, line):
-                      extrainfo_line = line
-                      target_found = True
+                  else:
+                    raise KeyError(target_format)
+                elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
+                  extrainfo = cleanvalue(target_details.xpath(extractvalue % name)[0])
                 else:
-                  raise KeyError(target_format)
-              elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-                extrainfo = cleanvalue(target_details.xpath(extractvalue % name)[0])
+                  raise KeyError(extractmethod)
+              elif evaluatortarget == TARGET_INDEX:
+                extrainfo = cleanvalue(item.xpath(extractvalue)[0])
               else:
-                raise KeyError(extractmethod)
-            elif evaluatortarget == TARGET_INDEX:
-              extrainfo = cleanvalue(item.xpath(extractvalue)[0])
-            else:
-              raise KeyError(evaluatortarget)
-          except:
-            continue
-          output.start_item(itemindex)
-          output.write_string(scrape_target)
-          output.write_int(index)
-          output.write_string(name)
-          output.write_string(description)
-          output.write_string(extrainfo)
-          output.write_string(link)
+                raise KeyError(evaluatortarget)
+            except:
+              continue
+            output.start_item(itemindex)
+            output.write_string(scrape_target)
+            output.write_int(index)
+            output.write_string(name)
+            output.write_string(description)
+            output.write_string(extrainfo)
+            output.write_string(link)
 
-          detailvalues = {}
-          for detailname, detail in (config[KEY_DETAILS] if KEY_DETAILS in config else {}).items():
-            detailsource = description
-            if KEY_DETAILS_SOURCE in detail:
-              detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
-            truedefault = ''
-            writer = output.write_string
-            valueconverter = lambda value: value
-            detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
-            if detailstype == TYPE_INT:
-              truedefault = 0
-              writer = output.write_int
-              valueconverter = int
-            elif detailstype == TYPE_FLOAT:
-              truedefault = 0.
-              writer = output.write_float
-              valueconverter = float
-            elif detailstype != TYPE_STRING:
-              raise KeyError(detailstype)
-            value = None
-            detailsconversion = detail[KEY_DETAILS_CONVERSION]
-            conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
-            if conversionprocess == CONVERSION_LAYER:
-              try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
-              except: value = truedefault
-            elif conversionprocess == CONVERSION_SCHEDULE:
-              try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
-              except: value = truedefault
-              oldwriter = writer
-              writer = lambda values: list(map(oldwriter, values))
-            else:
-              matchconverter = lambda matches: ','.join(matches) if matches else truedefault
-              gotmatch = False
-              if conversionprocess == CONVERSION_VALUE:
-                matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
-              elif conversionprocess == CONVERSION_CALCULATE:
-                matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
-              else:
-                raise KeyError(conversionprocess)
-              gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
-              value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
-              if gotmatch:
-                try: value = matchconverter(gotmatch.groups())
+            detailvalues = {}
+            for detailname, detail in (config[KEY_DETAILS] if KEY_DETAILS in config else {}).items():
+              detailsource = description
+              if KEY_DETAILS_SOURCE in detail:
+                detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
+              truedefault = ''
+              writer = output.write_string
+              valueconverter = lambda value: value
+              detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
+              if detailstype == TYPE_INT:
+                truedefault = 0
+                writer = output.write_int
+                valueconverter = int
+              elif detailstype == TYPE_FLOAT:
+                truedefault = 0.
+                writer = output.write_float
+                valueconverter = float
+              elif detailstype != TYPE_STRING:
+                raise KeyError(detailstype)
+              value = None
+              detailsconversion = detail[KEY_DETAILS_CONVERSION]
+              conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
+              if conversionprocess == CONVERSION_LAYER:
+                try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
                 except: value = truedefault
-            detailvalues[detailname] = value
-            writer(value)
+              elif conversionprocess == CONVERSION_SCHEDULE:
+                try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
+                except: value = truedefault
+                oldwriter = writer
+                writer = lambda values: list(map(oldwriter, values))
+              else:
+                matchconverter = lambda matches: ','.join(matches) if matches else truedefault
+                gotmatch = False
+                if conversionprocess == CONVERSION_VALUE:
+                  matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
+                elif conversionprocess == CONVERSION_CALCULATE:
+                  matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
+                else:
+                  raise KeyError(conversionprocess)
+                gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
+                value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
+                if gotmatch:
+                  try: value = matchconverter(gotmatch.groups())
+                  except: value = truedefault
+              detailvalues[detailname] = value
+              writer(value)
 
-          output.end_item()
-          index += 1
-          itemindex = itemindex + 1
+            output.end_item()
+            index += 1
+            itemindex = itemindex + 1
 
 def parseTimevalue(timevalue, daythreshold = None):
   timevalue = timevalue.upper()
