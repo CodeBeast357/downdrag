@@ -16,8 +16,9 @@ The harvested information is first structured by those main fields:
 
 ## configuration
 
-There's three main roots:
+These are the main roots:
 
+- querier
 - outputs
 - details
 - profiles
@@ -93,6 +94,14 @@ profiles:
       value: //div[@id="daily-signings"]/div[@id="%s"]/descendant::text()
 
 ```
+
+### querier
+
+Mechanism of querying the data:
+
+- mode: strategy of the querier
+  - plain: (default)
+  - secure: use Tor, needs to have torpy package installed
 
 ### outputs
 
