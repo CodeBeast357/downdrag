@@ -2,6 +2,7 @@ from re import search, match as test, findall, IGNORECASE
 from lxml import html
 from datetime import datetime
 from urllib.parse import urljoin
+from abc import ABC
 
 APPLICATION_NAME = 'downdrag'
 APPLICATION_CONFIG_FILENAME = 'downdrag.yml'
@@ -62,7 +63,7 @@ PATHFINDER_TYPE_SHOWCASE = 'showcase'
 PATHFINDER_FORMAT_NOW = 'now'
 PATHFINDER_FORMAT_LIST = 'list'
 
-class DataQuerier(object):
+class DataQuerier(ABC):
   def __init__(self, getter):
     self.__getter = getter
   def __enter__(self):
@@ -135,7 +136,7 @@ class SecureDataQuerier(DataQuerier):
     self.request.close()
     self.guard.close()
 
-class ResultsWriter(object):
+class ResultsWriter(ABC):
   def __init__(self, config):
     self.headers = MAIN_FIELDS.copy()
     for detailname, detail in config[KEY_DETAILS].items():
