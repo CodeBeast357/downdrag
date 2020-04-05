@@ -84,7 +84,7 @@ class PlainDataQuerier(DataQuerier):
   def __exit__(self, type, value, tb):
     pass
   def get(self, url):
-    return self.getter(url)
+    return html.fromstring(self.getter(url).content)
 
 class SecureDataQuerier(DataQuerier):
   def __enter__(self):
@@ -103,7 +103,7 @@ class SecureDataQuerier(DataQuerier):
     self.request.close()
     self.guard.close()
   def get(self, url):
-    return self.request.get(url)
+    return html.fromstring(self.request.get(url).content)
 
 class ResultsWriter(object):
   def __init__(self, config):
@@ -296,8 +296,7 @@ def execute(config):
         pathfinder = scrape_profile[KEY_PATHFINDER]
 
         url = scrape_profile[KEY_URL]
-        page = querier.get(url)
-        tree = html.fromstring(page.content)
+        tree = querier.get(url)
 
         # if KEY_PAGERS in scrape_profile:
         #   pagers = tree.xpath(scrape_profile[KEY_PAGERS])
@@ -329,8 +328,7 @@ def execute(config):
           try:
             linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
             link = parse_link(url, str(item.xpath(linkinfos)[0].attrib['href']))
-            child = querier.get(link)
-            infos = html.fromstring(child.content)
+            infos = querier.get(link)
             name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
 
             features = infos.xpath(scrape_profile[KEY_FEATURES])
@@ -350,8 +348,7 @@ def execute(config):
             isexternaltarget = evaluatortarget == TARGET_EXTERNAL
             extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
             if isexternaltarget:
-              target_child = querier.get(pathfinder[KEY_EVALUATOR_LINK])
-              target_details = html.fromstring(target_child.content)
+              target_details = querier.get(pathfinder[KEY_EVALUATOR_LINK])
             if isexternaltarget or evaluatortarget == TARGET_CURRENT:
               extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
               if extractmethod == PATHFINDER_TYPE_FULLTEXT:
