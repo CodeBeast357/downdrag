@@ -72,7 +72,7 @@ class DataQuerier(ABC):
     raise NotImplementedError
   def pages(self, scrape_profile):
     url = scrape_profile[KEY_URL]
-    tree = html.fromstring(self.__getter(url).content)
+    tree = html.fromstring(self.__getter(url))
     data = DataQuerier.StaticData(tree, self.__getter, url)
     yield data
     if KEY_PAGERS not in scrape_profile: return
@@ -80,7 +80,7 @@ class DataQuerier(ABC):
       pagers = tree.xpath(scrape_profile[KEY_PAGERS])
       if pagers:
         url = data.rebase_link(str(pagers[0].attrib['href']))
-        tree = html.fromstring(self.__getter(url).content)
+        tree = html.fromstring(self.__getter(url))
         data = DataQuerier.StaticData(tree, self.__getter, url)
         yield data
       else:
@@ -105,12 +105,12 @@ class DataQuerier(ABC):
     def xpath(self, query):
       return self.__tree.xpath(query)
     def get(self, link):
-      return html.fromstring(self.__getter(self.rebase_link(link)).content)
+      return html.fromstring(self.__getter(self.rebase_link(link)))
 
 class PlainDataQuerier(DataQuerier):
   def __init__(self):
     from requests import get
-    super().__init__(get)
+    super().__init__(lambda url: get(url).content)
   def __enter__(self):
     return self
   def __exit__(self, type, value, tb):
@@ -130,7 +130,7 @@ class SecureDataQuerier(DataQuerier):
     self.request.headers.update({'User-Agent': 'Mozilla/5.0'})
     self.request.mount('http://', self.adapter)
     self.request.mount('https://', self.adapter)
-    self.__getter = self.request.get
+    self.__getter = lambda url: self.request.get(url).content
     return self
   def __exit__(self, type, value, tb):
     self.request.close()
