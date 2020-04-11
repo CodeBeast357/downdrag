@@ -54,9 +54,10 @@ def execute(config):
   now = datetime.now()
   profiles = config[KEY_PROFILES]
   querierconfig = config[KEY_QUERIER] if KEY_QUERIER in config else {}
+  details = config[KEY_DETAILS] if KEY_DETAILS in config else {}
   with DataQuerier.Create(querierconfig) as querier:
     headers = MAIN_FIELDS.copy()
-    for detailname, detail in config[KEY_DETAILS].items():
+    for detailname, detail in details.items():
       conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
       if conversionprocess in USAGE_TYPES_MULTIPART:
         for headerformat in USAGE_TYPES_MULTIPART[conversionprocess]:
@@ -154,7 +155,7 @@ def execute(config):
             output.write_string(link)
 
             detailvalues = {}
-            for detailname, detail in (config[KEY_DETAILS] if KEY_DETAILS in config else {}).items():
+            for detailname, detail in details.items():
               detailsource = description
               if KEY_DETAILS_SOURCE in detail:
                 detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
