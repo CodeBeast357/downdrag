@@ -64,26 +64,27 @@ PATHFINDER_FORMAT_NOW = 'now'
 PATHFINDER_FORMAT_LIST = 'list'
 
 class DataQuerier(ABC):
-  def __init__(self, getter):
-    self.__getter = getter
   @abstractmethod
   def __enter__(self):
     raise NotImplementedError
   @abstractmethod
   def __exit__(self, type, value, tb):
     raise NotImplementedError
+  @abstractmethod
+  def _get_content(self, link):
+    raise NotImplementedError
   def pages(self, scrape_profile):
     url = scrape_profile[KEY_URL]
-    tree = html.fromstring(self.__getter(url))
-    data = DataQuerier.StaticData(tree, self.__getter, url)
+    tree = html.fromstring(self._get_content(url))
+    data = DataQuerier.StaticData(tree, self, url)
     yield data
     if KEY_PAGERS not in scrape_profile: return
     while True:
       pagers = tree.xpath(scrape_profile[KEY_PAGERS])
       if pagers:
         url = data.rebase_link(str(pagers[0].attrib['href']))
-        tree = html.fromstring(self.__getter(url))
-        data = DataQuerier.StaticData(tree, self.__getter, url)
+        tree = html.fromstring(self._get_content(url))
+        data = DataQuerier.StaticData(tree, self, url)
         yield data
       else:
         break
@@ -94,9 +95,9 @@ class DataQuerier(ABC):
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
     else: raise KeyError(querier)
   class StaticData(object):
-    def __init__(self, tree, getter, url):
+    def __init__(self, tree, querier, url):
       self.__tree = tree
-      self.__getter = getter
+      self.__querier = querier
       self.__url = url
     def rebase_link(self, link):
       if link.startswith('#'):
@@ -107,20 +108,20 @@ class DataQuerier(ABC):
     def xpath(self, query):
       return self.__tree.xpath(query)
     def get(self, link):
-      return html.fromstring(self.__getter(self.rebase_link(link)))
+      return html.fromstring(self.__querier._get_content(self.rebase_link(link)))
 
 class PlainDataQuerier(DataQuerier):
   def __init__(self):
     from requests import get
-    super().__init__(lambda url: get(url).content)
+    self.__get = get
   def __enter__(self):
     return self
   def __exit__(self, type, value, tb):
     pass
+  def _get_content(self, link):
+    return self.__get(link).content
 
 class SecureDataQuerier(DataQuerier):
-  def __init__(self):
-    super().__init__(None)
   def __enter__(self):
     from requests import Session
     from torpy import TorClient
@@ -132,11 +133,15 @@ class SecureDataQuerier(DataQuerier):
     self.request.headers.update({'User-Agent': 'Mozilla/5.0'})
     self.request.mount('http://', self.adapter)
     self.request.mount('https://', self.adapter)
-    self.__getter = lambda url: self.request.get(url).content
+    self.__get = self.request.get
     return self
   def __exit__(self, type, value, tb):
     self.request.close()
     self.guard.close()
+  def _get_content(self, link):
+    from torpy.guard import GuardState
+    if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
+    return self.__get(link).content
 
 class ResultsWriter(ABC):
   def __init__(self, config):
