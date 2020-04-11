@@ -95,7 +95,7 @@ profiles:
 
 ```
 
-### querier
+### querier (optional, defaults to plain)
 
 Mechanism of querying the data:
 
