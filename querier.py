@@ -21,7 +21,7 @@ class DataQuerier(ABC):
   def pages(self, scrape_profile):
     url = scrape_profile[KEY_URL]
     tree = html.fromstring(self._get_content(url))
-    data = DataQuerier.StaticData(tree, self, url)
+    data = DataQuerier.PageData(tree, self, url)
     yield data
     if KEY_PAGERS not in scrape_profile: return
     while True:
@@ -29,7 +29,7 @@ class DataQuerier(ABC):
       if pagers:
         url = data.rebase_link(str(pagers[0].attrib['href']))
         tree = html.fromstring(self._get_content(url))
-        data = DataQuerier.StaticData(tree, self, url)
+        data = DataQuerier.PageData(tree, self, url)
         yield data
       else:
         break
@@ -39,7 +39,7 @@ class DataQuerier(ABC):
     if querier == QUERIER_SECURE: return SecureDataQuerier()
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
     else: raise KeyError(querier)
-  class StaticData(object):
+  class PageData(object):
     def __init__(self, tree, querier, url):
       self.__tree = tree
       self.__querier = querier
