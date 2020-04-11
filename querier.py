@@ -3,10 +3,13 @@ from urllib.parse import urljoin
 from abc import ABC, abstractmethod
 
 KEY_QUERIER_MODE = 'mode'
+KEY_QUERIER_DRIVER = 'driver'
+KEY_QUERIER_ARGSLINE = 'argsline'
 KEY_URL = 'url'
 KEY_PAGERS = 'pagers'
 QUERIER_PLAIN = 'plain'
 QUERIER_SECURE = 'secure'
+QUERIER_DYNAMIC = 'dynamic'
 
 class DataQuerier(ABC):
   @abstractmethod
@@ -38,6 +41,7 @@ class DataQuerier(ABC):
     querier = querierconfig[KEY_QUERIER_MODE] if KEY_QUERIER_MODE in querierconfig else QUERIER_PLAIN
     if querier == QUERIER_SECURE: return SecureDataQuerier()
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
+    elif querier == QUERIER_DYNAMIC: return DynamicDataQuerier(querierconfig)
     else: raise KeyError(querier)
   class PageData(object):
     def __init__(self, tree, querier, url):
@@ -87,3 +91,23 @@ class SecureDataQuerier(DataQuerier):
     from torpy.guard import GuardState
     if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
     return self.__get(link).content
+
+class DynamicDataQuerier(DataQuerier):
+  def __init__(self, querierconfig):
+    from importlib import import_module
+    webdriver = import_module('selenium.webdriver')
+    drivername = querierconfig[KEY_QUERIER_DRIVER]
+    self.__driverFactory = getattr(webdriver, drivername)
+    self.__args = None
+    if KEY_QUERIER_ARGSLINE in querierconfig:
+      options = getattr(webdriver, '%sOptions' % drivername)
+      self.__args = options()
+      self.__args.add_argument(querierconfig[KEY_QUERIER_ARGSLINE])
+  def __enter__(self):
+    self.__driver = self.__driverFactory(options=self.__args)
+    return self
+  def __exit__(self, type, value, tb):
+    self.__driver.quit()
+  def _get_content(self, link):
+    self.__driver.get(link)
+    return self.__driver.find_element_by_tag_name('html').get_attribute('outerHTML')

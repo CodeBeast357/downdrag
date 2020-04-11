@@ -102,6 +102,9 @@ Mechanism of querying the data:
 - mode: strategy of the querier
   - plain: (default)
   - secure: use Tor, needs to have torpy package installed
+  - dynamic: use a selenium web driver
+- driver: only for dynamic mode, one of Firefox, Chrome, Ie or WebKitGTK
+- argsline: engine command line arguments, only for dynamic mode
 
 ### outputs
 
