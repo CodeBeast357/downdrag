@@ -144,15 +144,8 @@ class SecureDataQuerier(DataQuerier):
     return self.__get(link).content
 
 class ResultsWriter(ABC):
-  def __init__(self, config):
-    self.headers = MAIN_FIELDS.copy()
-    for detailname, detail in config[KEY_DETAILS].items():
-      conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
-      if conversionprocess in USAGE_TYPES_MULTIPART:
-        for headerformat in USAGE_TYPES_MULTIPART[conversionprocess]:
-          self.headers.append(headerformat % detailname)
-      else:
-        self.headers.append(detailname)
+  def __init__(self, headers):
+    self.headers = headers
   @abstractmethod
   def __enter__(self):
     raise NotImplementedError
@@ -175,20 +168,18 @@ class ResultsWriter(ABC):
   def end_item(self):
     raise NotImplementedError
   @staticmethod
-  def Create(config):
-    outputs = config[KEY_OUTPUTS]
-    if len(outputs) > 1: return PipelineResultsWriter(config)
+  def Create(outputsconfig, headers):
+    if len(outputsconfig) > 1: return PipelineResultsWriter(outputsconfig, headers)
     else:
-      output_format = next(output_key for output_key in outputs.keys())
-      if output_format == KEY_CSV: return CsvResultsWriter(config)
-      elif output_format == KEY_MYSQL: return MySqlResultsWriter(config)
-      elif output_format == KEY_HTML: return HtmlResultsWriter(config)
+      output_format, output_config = next(output_key for output_key in outputsconfig.items())
+      if output_format == KEY_CSV: return CsvResultsWriter(output_config, headers)
+      elif output_format == KEY_MYSQL: return MySqlResultsWriter(output_config, headers)
+      elif output_format == KEY_HTML: return HtmlResultsWriter(output_config, headers)
       else: raise KeyError(output_format)
 
 class CsvResultsWriter(ResultsWriter):
-  def __init__(self, config):
-    super().__init__(config)
-    csvconfig = config[KEY_OUTPUTS][KEY_CSV]
+  def __init__(self, csvconfig, headers):
+    super().__init__(headers)
     self.filename = csvconfig[KEY_CSV_FILENAME]
   def __enter__(self):
     self.output = open(self.filename, 'w', encoding='utf8')
@@ -208,9 +199,8 @@ class CsvResultsWriter(ResultsWriter):
     self.output.write('\n')
 
 class MySqlResultsWriter(ResultsWriter):
-  def __init__(self, config):
-    super().__init__(config)
-    mysqlconfig = config[KEY_OUTPUTS][KEY_MYSQL]
+  def __init__(self, mysqlconfig, headers):
+    super().__init__(headers)
     self.connectioninfos = mysqlconfig[KEY_MYSQL_CONNECTIONINFOS]
     self.tablename = mysqlconfig[KEY_MYSQL_TABLENAME]
   def __enter__(self):
@@ -237,9 +227,8 @@ class MySqlResultsWriter(ResultsWriter):
     self.cnn.commit()
 
 class HtmlResultsWriter(ResultsWriter):
-  def __init__(self, config):
-    super().__init__(config)
-    htmlconfig = config[KEY_OUTPUTS][KEY_HTML]
+  def __init__(self, htmlconfig, headers):
+    super().__init__(headers)
     self.filename = htmlconfig[KEY_HTML_FILANEME]
     self.title = htmlconfig[KEY_HTML_TITLE]
     self.scripts = htmlconfig[KEY_HTML_SCRIPTS]
@@ -294,13 +283,11 @@ class HtmlResultsWriter(ResultsWriter):
       </tr>""")
 
 class PipelineResultsWriter(object):
-  def __init__(self, config):
-    outputs = config[KEY_OUTPUTS]
+  def __init__(self, outputsconfig, headers):
     self.pipeline = []
-    for item_format, item_config in outputs.items():
-      output_config = config.copy()
-      output_config[KEY_OUTPUTS] = { item_format: item_config }
-      self.pipeline.append(ResultsWriter.Create(output_config))
+    for item_format, item_config in outputsconfig.items():
+      output_config = { item_format: item_config }
+      self.pipeline.append(ResultsWriter.Create(output_config, headers))
   def __enter__(self):
     for item in self.pipeline:
       item.__enter__()
@@ -328,7 +315,16 @@ def execute(config):
   now = datetime.now()
   profiles = config[KEY_PROFILES]
   with DataQuerier.Create(config) as querier:
-    with ResultsWriter.Create(config) as output:
+    headers = MAIN_FIELDS.copy()
+    for detailname, detail in config[KEY_DETAILS].items():
+      conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
+      if conversionprocess in USAGE_TYPES_MULTIPART:
+        for headerformat in USAGE_TYPES_MULTIPART[conversionprocess]:
+          headers.append(headerformat % detailname)
+      else:
+        headers.append(detailname)
+
+    with ResultsWriter.Create(config[KEY_OUTPUTS], headers) as output:
       itemindex = 0
       for scrape_target, scrape_profile in profiles.items():
         pathfinder = scrape_profile[KEY_PATHFINDER]
