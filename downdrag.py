@@ -89,8 +89,8 @@ class DataQuerier(ABC):
       else:
         break
   @staticmethod
-  def Create(config):
-    querier = config[KEY_QUERIER][KEY_QUERIER_MODE] if KEY_QUERIER in config else QUERIER_PLAIN
+  def Create(querierconfig):
+    querier = querierconfig[KEY_QUERIER_MODE] if KEY_QUERIER_MODE in querierconfig else QUERIER_PLAIN
     if querier == QUERIER_SECURE: return SecureDataQuerier()
     elif querier == QUERIER_PLAIN: return PlainDataQuerier()
     else: raise KeyError(querier)
@@ -315,7 +315,8 @@ class PipelineResultsWriter(object):
 def execute(config):
   now = datetime.now()
   profiles = config[KEY_PROFILES]
-  with DataQuerier.Create(config) as querier:
+  querierconfig = config[KEY_QUERIER] if KEY_QUERIER in config else {}
+  with DataQuerier.Create(querierconfig) as querier:
     headers = MAIN_FIELDS.copy()
     for detailname, detail in config[KEY_DETAILS].items():
       conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
