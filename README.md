@@ -111,9 +111,9 @@ There's currently three types of output available:
   - filename
 - html
   - filename
-  - title
-  - scripts: list of js filenames
-  - styles: list of css filenames
+  - title, optional
+  - scripts: optional list of js filenames
+  - styles: optional list of css filenames
 - mysql (requires having the installation of mysql-connector-python package)
   - connectionsinfos: dict of [connect args](https://dev.mysql.com/doc/connector-python/en/connector-python-connectargs.html)
   - tablename

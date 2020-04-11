@@ -230,16 +230,17 @@ class HtmlResultsWriter(ResultsWriter):
   def __init__(self, htmlconfig, headers):
     super().__init__(headers)
     self.filename = htmlconfig[KEY_HTML_FILANEME]
-    self.title = htmlconfig[KEY_HTML_TITLE]
-    self.scripts = htmlconfig[KEY_HTML_SCRIPTS]
-    self.styles = htmlconfig[KEY_HTML_STYLES]
+    self.title = htmlconfig[KEY_HTML_TITLE] if KEY_HTML_TITLE in htmlconfig else None
+    self.scripts = htmlconfig[KEY_HTML_SCRIPTS] if KEY_HTML_SCRIPTS in htmlconfig else []
+    self.styles = htmlconfig[KEY_HTML_STYLES] if KEY_HTML_STYLES in htmlconfig else []
   def __enter__(self):
+    htmltitle = ("""
+    <title>%s</title>""" % self.title) if self.title else ''
     self.output = open(self.filename, 'w', encoding='utf8')
     self.output.write("""<!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8" />
-    <title>%s</title>""" % self.title)
+    <meta charset="utf-8" />%s""" % htmltitle)
     for script in self.scripts:
       self.output.write("""
     <script src="%s"></script>""" % script)
