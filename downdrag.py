@@ -2,7 +2,7 @@ from re import search, match as test, findall, IGNORECASE
 from lxml import html
 from datetime import datetime
 from urllib.parse import urljoin
-from abc import ABC
+from abc import ABC, abstractmethod
 
 APPLICATION_NAME = 'downdrag'
 APPLICATION_CONFIG_FILENAME = 'downdrag.yml'
@@ -66,8 +66,10 @@ PATHFINDER_FORMAT_LIST = 'list'
 class DataQuerier(ABC):
   def __init__(self, getter):
     self.__getter = getter
+  @abstractmethod
   def __enter__(self):
     raise NotImplementedError
+  @abstractmethod
   def __exit__(self, type, value, tb):
     raise NotImplementedError
   def pages(self, scrape_profile):
@@ -146,18 +148,25 @@ class ResultsWriter(ABC):
           self.headers.append(headerformat % detailname)
       else:
         self.headers.append(detailname)
+  @abstractmethod
   def __enter__(self):
     raise NotImplementedError
+  @abstractmethod
   def __exit__(self, type, value, tb):
     raise NotImplementedError
+  @abstractmethod
   def start_item(self, index):
     raise NotImplementedError
+  @abstractmethod
   def write_string(self, value):
     raise NotImplementedError
+  @abstractmethod
   def write_int(self, value):
     raise NotImplementedError
+  @abstractmethod
   def write_float(self, value):
     raise NotImplementedError
+  @abstractmethod
   def end_item(self):
     raise NotImplementedError
   @staticmethod
