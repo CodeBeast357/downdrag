@@ -1,0 +1,75 @@
+querier: any(include('querier-simple'), include('querier-extended'), required=False)
+outputs: any(include('outputs-csv'), include('outputs-mysql'), include('outputs-html'))
+details: map(include('details-item'), required=False)
+profiles: map(include('profile-item'))
+---
+querier-simple:
+  mode: enum('plain', 'secure', required=False)
+querier-extended:
+  mode: enum('dynamic')
+  driver: str()
+  argsline: str(required=False)
+
+outputs-csv:
+  csv:
+    filename: str()
+outputs-mysql:
+  mysql:
+    connectioninfos: map(str(), int())
+    tablename: str()
+outputs-html:
+  html:
+    filename: str()
+    title: str(required=False)
+    scripts: list(str(), required=False)
+    styles: list(str(), required=False)
+
+details-item:
+  type: enum('string', 'int', 'float', required=False)
+  default: any(str(), num(), required=False)
+  conversion: any(include('conversion-simple'), include('conversion-calculate'), include('conversion-layer'))
+  source: str(required=False)
+
+conversion-simple:
+  process: enum('value', 'schedule')
+  pattern: str()
+conversion-calculate:
+  process: enum('calculate')
+  pattern: str()
+  formula: str()
+conversion-layer:
+  process: enum('layer')
+  formula: str()
+
+profile-item:
+  url: str()
+  pagers: str(required=False)
+  items: str()
+  infos: str(required=False)
+  name: str()
+  features: str()
+  evaluator: str()
+  pathfinder: any(include('pathfinder-current-fulltext'), include('pathfinder-current-showcase'), include('pathfinder-external-fulltext'), include('pathfinder-external-showcase'), include('pathfinder-index'))
+
+pathfinder-current-fulltext:
+  target: enum('current')
+  type: enum('fulltext')
+  format: enum('now', 'list')
+pathfinder-current-showcase:
+  target: enum('current')
+  type: enum('showcase')
+  value: str()
+pathfinder-external-fulltext:
+  target: enum('external')
+  link: str()
+  type: enum('fulltext')
+  format: enum('now', 'list')
+  indexer: str()
+pathfinder-external-showcase:
+  target: enum('external')
+  link: str()
+  type: enum('showcase')
+  value: str()
+pathfinder-index:
+  target: enum('index')
+  value: str()

@@ -1,3 +1,4 @@
 confuse==1.0.0
 lxml==4.4.2
 requests==2.22.0
+yamale==2.0.1

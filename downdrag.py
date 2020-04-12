@@ -7,6 +7,7 @@ from querier import DataQuerier
 from outputs import ResultsWriter
 
 APPLICATION_NAME = 'downdrag'
+APPLICATION_CONFIG_SCHEMA = 'schema.yml'
 APPLICATION_CONFIG_FILENAME = 'downdrag.yml'
 KEY_DETAILS = 'details'
 KEY_DETAILS_TYPE = 'type'
@@ -259,6 +260,12 @@ def cleanvalue(value):
 
 if __name__ == "__main__":
   from confuse import Configuration
+  from yamale import make_schema, make_data, validate
+  try: validate(make_schema(APPLICATION_CONFIG_SCHEMA), make_data(APPLICATION_CONFIG_FILENAME))
+  except:
+    import sys
+    print("Configuration isn't valid.")
+    sys.exit(-1)
   config = Configuration(APPLICATION_NAME)
   config.set_file(APPLICATION_CONFIG_FILENAME)
   execute(config.get())
