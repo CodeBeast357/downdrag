@@ -160,8 +160,8 @@ Multiple websites can be scraped.
     - fulltext: simple text
     - showcase: html presentation
   - pattern: except for index or showcase
-  - format: choice for structure of the infos
+  - format: choice for structure of the infos if fulltext
     - now: current date and time
     - list: enumeration of items
-  - indexer: string method for matching the line if external and fulltext
-  - value: XPath text value, parametrized with name if showcase
+  - indexer: string method for matching the line if fulltext
+  - value: XPath text value, parametrized with name if index or showcase
