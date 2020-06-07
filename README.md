@@ -166,3 +166,13 @@ Multiple websites can be scraped.
     - list: enumeration of items
   - indexer: string method for matching the line if fulltext
   - value: XPath text value, parametrized with name if index or showcase
+
+## development
+
+### outputs
+
+![Class Diagram for outputs](./outputs.svg)
+
+### querier
+
+![Class Diagram for querier](./querier.svg)
