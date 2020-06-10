@@ -157,50 +157,53 @@ def execute(config):
 
             detailvalues = {}
             for detailname, detail in details.items():
-              detailsource = description
-              if KEY_DETAILS_SOURCE in detail:
-                detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
-              truedefault = ''
-              writer = output.write_string
-              valueconverter = lambda value: value
-              detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
-              if detailstype == TYPE_INT:
-                truedefault = 0
-                writer = output.write_int
-                valueconverter = int
-              elif detailstype == TYPE_FLOAT:
-                truedefault = 0.
-                writer = output.write_float
-                valueconverter = float
-              elif detailstype != TYPE_STRING:
-                raise KeyError(detailstype)
-              value = None
-              detailsconversion = detail[KEY_DETAILS_CONVERSION]
-              conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
-              if conversionprocess == CONVERSION_LAYER:
-                try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
-                except: value = truedefault
-              elif conversionprocess == CONVERSION_SCHEDULE:
-                try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
-                except: value = truedefault
-                oldwriter = writer
-                writer = lambda values: list(map(oldwriter, values))
-              else:
-                matchconverter = lambda matches: ','.join(matches) if matches else truedefault
-                gotmatch = False
-                if conversionprocess == CONVERSION_VALUE:
-                  matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
-                elif conversionprocess == CONVERSION_CALCULATE:
-                  matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
-                else:
-                  raise KeyError(conversionprocess)
-                gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
-                value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
-                if gotmatch:
-                  try: value = matchconverter(gotmatch.groups())
+              try:
+                detailsource = description
+                if KEY_DETAILS_SOURCE in detail:
+                  detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
+                truedefault = ''
+                writer = output.write_string
+                valueconverter = lambda value: value
+                detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
+                if detailstype == TYPE_INT:
+                  truedefault = 0
+                  writer = output.write_int
+                  valueconverter = int
+                elif detailstype == TYPE_FLOAT:
+                  truedefault = 0.
+                  writer = output.write_float
+                  valueconverter = float
+                elif detailstype != TYPE_STRING:
+                  raise KeyError(detailstype)
+                value = None
+                detailsconversion = detail[KEY_DETAILS_CONVERSION]
+                conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
+                if conversionprocess == CONVERSION_LAYER:
+                  try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
                   except: value = truedefault
-              detailvalues[detailname] = value
-              writer(value)
+                elif conversionprocess == CONVERSION_SCHEDULE:
+                  try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
+                  except: value = truedefault
+                  oldwriter = writer
+                  writer = lambda values: list(map(oldwriter, values))
+                else:
+                  matchconverter = lambda matches: ','.join(matches) if matches else truedefault
+                  gotmatch = False
+                  if conversionprocess == CONVERSION_VALUE:
+                    matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
+                  elif conversionprocess == CONVERSION_CALCULATE:
+                    matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
+                  else:
+                    raise KeyError(conversionprocess)
+                  gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
+                  value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
+                  if gotmatch:
+                    try: value = matchconverter(gotmatch.groups())
+                    except: value = truedefault
+                detailvalues[detailname] = value
+                writer(value)
+              except:
+                output.write_empty()
 
             output.end_item()
             index += 1

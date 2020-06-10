@@ -33,6 +33,9 @@ class ResultsWriter(ABC):
   def write_float(self, value):
     raise NotImplementedError
   @abstractmethod
+  def write_empty(self):
+    raise NotImplementedError
+  @abstractmethod
   def end_item(self):
     raise NotImplementedError
   @staticmethod
@@ -63,6 +66,8 @@ class CsvResultsWriter(ResultsWriter):
     self.output.write(',%i' % value)
   def write_float(self, value):
     self.output.write(',%f' % value)
+  def write_empty(self):
+    self.output.write(',')
   def end_item(self):
     self.output.write('\n')
 
@@ -90,6 +95,8 @@ class MySqlResultsWriter(ResultsWriter):
     self.item_values = self.item_values + (value,)
   def write_float(self, value):
     self.item_values = self.item_values + (value,)
+  def write_empty(self):
+    self.item_values = self.item_values + ('NULL',)
   def end_item(self):
     self.cursor.execute(self.insertion, self.item_values)
     self.cnn.commit()
@@ -147,6 +154,9 @@ class HtmlResultsWriter(ResultsWriter):
   def write_float(self, value):
     self.output.write("""
         <td>%f</td>""" % value)
+  def write_empty(self):
+    self.output.write("""
+        <td>&nbsp;</td>""")
   def end_item(self):
     self.output.write("""
       </tr>""")
@@ -176,6 +186,9 @@ class PipelineResultsWriter(ResultsWriter):
   def write_float(self, value):
     for item in self.pipeline:
       item.write_float(value)
+  def write_empty(self):
+    for item in self.pipeline:
+      item.write_empty()
   def end_item(self):
     for item in self.pipeline:
       item.end_item()

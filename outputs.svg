@@ -21,16 +21,16 @@
       ><path d="M0 0 L0 70 L210 70 L210 0 Z"
       /></clipPath
       ><clipPath clipPathUnits="userSpaceOnUse" id="clipPath6"
-      ><path d="M0 0 L0 200 L300 200 L300 0 Z"
+      ><path d="M0 0 L0 210 L300 210 L300 0 Z"
       /></clipPath
       ><clipPath clipPathUnits="userSpaceOnUse" id="clipPath7"
-      ><path d="M0 0 L0 80 L70 80 L70 0 Z"
+      ><path d="M0 0 L0 70 L70 70 L70 0 Z"
       /></clipPath
       ><clipPath clipPathUnits="userSpaceOnUse" id="clipPath8"
       ><path d="M0 0 L0 40 L120 40 L120 0 Z"
       /></clipPath
       ><clipPath clipPathUnits="userSpaceOnUse" id="clipPath9"
-      ><path d="M0 0 L0 80 L30 80 L30 0 Z"
+      ><path d="M0 0 L0 70 L30 70 L30 0 Z"
       /></clipPath
       ><clipPath clipPathUnits="userSpaceOnUse" id="clipPath10"
       ><path d="M0 0 L0 30 L120 30 L120 0 Z"
@@ -101,10 +101,10 @@
       >+__init__(csvconfig, headers)</text
     ></g
     ><g fill="rgb(255,255,255)" fill-opacity="0" transform="translate(30,180)" stroke-opacity="0" stroke="rgb(255,255,255)"
-    ><rect x="0.5" width="298.5" height="198.5" y="0.5" clip-path="url(#clipPath6)" stroke="none"
+    ><rect x="0.5" width="298.5" height="208.5" y="0.5" clip-path="url(#clipPath6)" stroke="none"
     /></g
     ><g transform="translate(30,180)"
-    ><rect fill="none" x="0.5" width="298.5" height="198.5" y="0.5" clip-path="url(#clipPath6)"
+    ><rect fill="none" x="0.5" width="298.5" height="208.5" y="0.5" clip-path="url(#clipPath6)"
       /><text x="81" font-size="14px" y="17.9688" clip-path="url(#clipPath6)" font-family="sans-serif" font-style="italic" stroke="none" xml:space="preserve"
       >outputs::ResultsWriter</text
       ><path fill="none" d="M1 23.9688 L299 23.9688" clip-path="url(#clipPath6)"
@@ -126,16 +126,18 @@
       ><text x="5" font-size="14px" y="155.7188" clip-path="url(#clipPath6)" font-family="sans-serif" font-style="italic" stroke="none" xml:space="preserve"
       >+write_float(value)</text
       ><text x="5" font-size="14px" y="171.6875" clip-path="url(#clipPath6)" font-family="sans-serif" font-style="italic" stroke="none" xml:space="preserve"
+      >+write_empty()</text
+      ><text x="5" font-size="14px" y="187.6562" clip-path="url(#clipPath6)" font-family="sans-serif" font-style="italic" stroke="none" xml:space="preserve"
       >+end_item()</text
-      ><text x="5" font-size="14px" y="187.6562" text-decoration="underline" clip-path="url(#clipPath6)" font-family="sans-serif" stroke="none" xml:space="preserve"
+      ><text x="5" font-size="14px" y="203.625" text-decoration="underline" clip-path="url(#clipPath6)" font-family="sans-serif" stroke="none" xml:space="preserve"
       >+Create(outputsconfig, headers):ResultsWriter</text
     ></g
-    ><g stroke-dasharray="8,5" stroke-miterlimit="5" transform="translate(230,370)" stroke-linecap="butt"
-    ><path fill="none" d="M10.5 60.5 L10.5 11.5" clip-path="url(#clipPath7)"
+    ><g stroke-dasharray="8,5" stroke-miterlimit="5" transform="translate(230,380)" stroke-linecap="butt"
+    ><path fill="none" d="M10.5 50.5 L10.5 11.5" clip-path="url(#clipPath7)"
       /><path fill="none" stroke-miterlimit="10" stroke-dasharray="none" d="M17 22.2583 L10.5 11 L4 22.2583" clip-path="url(#clipPath7)" stroke-linecap="square"
     /></g
-    ><g font-family="sans-serif" font-size="14px" transform="translate(230,370)"
-    ><text x="14" xml:space="preserve" y="42.9844" clip-path="url(#clipPath7)" stroke="none"
+    ><g font-family="sans-serif" font-size="14px" transform="translate(230,380)"
+    ><text x="14" xml:space="preserve" y="37.9844" clip-path="url(#clipPath7)" stroke="none"
       >«use»</text
     ></g
     ><g stroke-dasharray="8,5" stroke-miterlimit="5" transform="translate(320,350)" stroke-linecap="butt"
@@ -162,8 +164,8 @@
     ><text x="27.7588" xml:space="preserve" y="16" clip-path="url(#clipPath8)" stroke="none"
       >«create»</text
     ></g
-    ><g transform="translate(200,370)"
-    ><path fill="none" d="M10.5 11.5 L10.5 60.5" clip-path="url(#clipPath9)"
+    ><g transform="translate(200,380)"
+    ><path fill="none" d="M10.5 11.5 L10.5 50.5" clip-path="url(#clipPath9)"
       /><path fill="white" d="M4 22.2583 L10.5 11 L17 22.2583 Z" clip-path="url(#clipPath9)" stroke="none"
       /><path fill="none" d="M4 22.2583 L10.5 11 L17 22.2583 Z" clip-path="url(#clipPath9)"
     /></g

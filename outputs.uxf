@@ -7,7 +7,7 @@
       <x>30</x>
       <y>180</y>
       <w>300</w>
-      <h>200</h>
+      <h>210</h>
     </coordinates>
     <panel_attributes>/outputs::ResultsWriter/
 --
@@ -20,6 +20,7 @@
 /+write_string(value)/
 /+write_int(value)/
 /+write_float(value)/
+/+write_empty()/
 /+end_item()/
 _+Create(outputsconfig, headers):ResultsWriter_</panel_attributes>
     <additional_attributes/>
@@ -125,12 +126,12 @@ _+Create(outputsconfig, headers):ResultsWriter_</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>200</x>
-      <y>370</y>
+      <y>380</y>
       <w>30</w>
-      <h>80</h>
+      <h>70</h>
     </coordinates>
     <panel_attributes>lt=&lt;&lt;-</panel_attributes>
-    <additional_attributes>10.0;10.0;10.0;60.0</additional_attributes>
+    <additional_attributes>10.0;10.0;10.0;50.0</additional_attributes>
   </element>
   <element>
     <id>Relation</id>
@@ -172,12 +173,12 @@ _+Create(outputsconfig, headers):ResultsWriter_</panel_attributes>
     <id>Relation</id>
     <coordinates>
       <x>230</x>
-      <y>370</y>
+      <y>380</y>
       <w>70</w>
-      <h>80</h>
+      <h>70</h>
     </coordinates>
     <panel_attributes>lt=.&gt;
 &lt;&lt;use&gt;&gt;</panel_attributes>
-    <additional_attributes>10.0;60.0;10.0;10.0</additional_attributes>
+    <additional_attributes>10.0;50.0;10.0;10.0</additional_attributes>
   </element>
 </diagram>
