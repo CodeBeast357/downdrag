@@ -158,7 +158,8 @@ def execute(config):
                     else:
                       raise KeyError(target_format)
                   elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-                    extrainfo = cleanvalue(target_details.xpath(extractvalue % name)[0])
+                    expandedvalue = target_details.xpath(extractvalue % name)
+                    extrainfo = cleanvalue(expandedvalue[0]) if expandedvalue else ''
                   else:
                     raise KeyError(extractmethod)
                 elif evaluatortarget == TARGET_INDEX:
