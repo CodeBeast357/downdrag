@@ -7,6 +7,8 @@ KEY_QUERIER_DRIVER = 'driver'
 KEY_QUERIER_ARGSLINE = 'argsline'
 KEY_URL = 'url'
 KEY_PAGERS = 'pagers'
+KEY_PAGERS_ACTION = 'action'
+KEY_PAGERS_VALUE = 'value'
 QUERIER_PLAIN = 'plain'
 QUERIER_SECURE = 'secure'
 QUERIER_DYNAMIC = 'dynamic'
@@ -27,8 +29,10 @@ class DataQuerier(ABC):
     data = DataQuerier.PageData(tree, self, url)
     yield data
     if KEY_PAGERS not in scrape_profile: return
+    pagers_value = scrape_profile[KEY_PAGERS]
+    if isinstance(pagers_value, dict): return
     while True:
-      pagers = tree.xpath(scrape_profile[KEY_PAGERS])
+      pagers = tree.xpath(pagers_value)
       if pagers:
         url = data.rebase_link(str(pagers[0].attrib['href']))
         tree = html.fromstring(self._get_content(url))
@@ -94,6 +98,7 @@ class SecureDataQuerier(DataQuerier):
 
 class DynamicDataQuerier(DataQuerier):
   def __init__(self, querierconfig):
+    super().__init__()
     from importlib import import_module
     webdriver = import_module('selenium.webdriver')
     drivername = querierconfig[KEY_QUERIER_DRIVER]
@@ -111,3 +116,21 @@ class DynamicDataQuerier(DataQuerier):
   def _get_content(self, link):
     self.__driver.get(link)
     return self.__driver.find_element_by_tag_name('html').get_attribute('outerHTML')
+  def pages(self, scrape_profile):
+    if KEY_PAGERS in scrape_profile and isinstance(scrape_profile[KEY_PAGERS], dict):
+      url = scrape_profile[KEY_URL]
+      pagers_config = scrape_profile[KEY_PAGERS]
+      action = pagers_config[KEY_PAGERS_ACTION]
+      value = pagers_config[KEY_PAGERS_VALUE]
+      self.__driver.get(url)
+      while True:
+        paging = self.__driver.find_element_by_xpath(value)
+        if paging:
+          getattr(paging, action)()
+        else:
+          break
+      tree = html.fromstring(self.__driver.page_source)
+      yield DataQuerier.PageData(tree, self, url)
+    else:
+      for page in super().pages(scrape_profile):
+        yield page

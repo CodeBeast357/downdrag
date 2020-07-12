@@ -145,7 +145,9 @@ Each of the gathered information can be modelled by:
 Multiple websites can be scraped.
 
 - url: index page of the items
-- pagers: XPath of element to next page
+- pagers: XPath of element to next page or configuration for dynamic pagers
+  - action: event to trigger
+  - value: XPath of element to dynamic next page
 - items: XPath list of elements
 - infos: XPath of link to the element's details (defaults to the first link within the element)
 - name: XPath text value

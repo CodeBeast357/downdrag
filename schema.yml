@@ -43,13 +43,17 @@ conversion-layer:
 
 profile-item:
   url: str()
-  pagers: str(required=False)
+  pagers: any(str(), include('pagers-dynamic'), required=False)
   items: str()
   infos: str(required=False)
   name: str()
   features: str()
   evaluator: str()
   pathfinder: any(include('pathfinder-current-fulltext'), include('pathfinder-current-showcase'), include('pathfinder-external-fulltext'), include('pathfinder-external-showcase'), include('pathfinder-index'))
+
+pagers-dynamic:
+  action: str()
+  value: str()
 
 pathfinder-current-fulltext:
   target: enum('current')
