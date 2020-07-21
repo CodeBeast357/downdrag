@@ -1,4 +1,4 @@
-from re import search, match as test, findall, IGNORECASE
+from re import search, match as test, IGNORECASE
 from lxml import html
 from datetime import datetime
 from urllib.parse import urljoin
@@ -16,6 +16,7 @@ KEY_DETAILS_CONVERSION = 'conversion'
 KEY_DETAILS_CONVERSION_PROCESS = 'process'
 KEY_DETAILS_CONVERSION_PATTERN = 'pattern'
 KEY_DETAILS_CONVERSION_FORMULA = 'formula'
+KEY_DETAILS_CONVERSION_CASE = 'case'
 KEY_DETAILS_DEFAULT = 'default'
 KEY_DETAILS_SOURCE = 'source'
 KEY_PROFILES = 'profiles'
@@ -205,7 +206,10 @@ def execute(config):
                     try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
                     except: value = truedefault
                   elif conversionprocess == CONVERSION_SCHEDULE:
-                    try: value = parseschedule(findall(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE))
+                    schedules = detailsconversion[KEY_DETAILS_CONVERSION_PATTERN]
+                    if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
+                      schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
+                    try: value = parseschedule(search(schedules, detailsource, IGNORECASE))
                     except: value = truedefault
                     oldwriter = writer
                     writer = lambda values: list(map(oldwriter, values))
@@ -275,13 +279,13 @@ def calculatelayer(formula, detailvalues):
     parsedformula = parsedformula.replace(name, str(value))
   return eval(parsedformula)
 
-def parseschedule(matches):
+def parseschedule(match):
   start = ''
   end = ''
-  if matches:
-    start = parseTimevalue(matches[0])
-    if len(matches) > 1:
-      end = parseTimevalue(matches[1], start)
+  if match:
+    start = parseTimevalue(match[1])
+    if match[2]:
+      end = parseTimevalue(match[2], start)
   return (start, end)
 
 def cleanvalue(value):

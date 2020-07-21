@@ -138,6 +138,7 @@ Each of the gathered information can be modelled by:
     - schedule: pair of time values on two fields
   - pattern: except for layer process
   - formula: for calculate and layer processes
+  - case: pattern of current datetime for schedule process (optional)
 - source: different field to harvest
 
 ### profiles

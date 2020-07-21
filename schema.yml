@@ -27,12 +27,16 @@ outputs-html:
 details-item:
   type: enum('string', 'int', 'float', required=False)
   default: any(str(), num(), required=False)
-  conversion: any(include('conversion-simple'), include('conversion-calculate'), include('conversion-layer'))
+  conversion: any(include('conversion-simple'), include('conversion-schedule'), include('conversion-calculate'), include('conversion-layer'))
   source: str(required=False)
 
 conversion-simple:
-  process: enum('value', 'schedule')
+  process: enum('value')
   pattern: str()
+conversion-schedule:
+  process: enum('schedule')
+  pattern: str()
+  case: str(required=False)
 conversion-calculate:
   process: enum('calculate')
   pattern: str()
