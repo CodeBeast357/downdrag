@@ -167,7 +167,7 @@ def execute(config):
                 else:
                   raise KeyError(evaluatortarget)
               except Exception as exc:
-                logging.error(LOGGING_STEP_ITEM_ERROR % (itemindex, str(exc)))
+                logging.exception(LOGGING_STEP_ITEM_ERROR % (itemindex, str(exc)))
                 continue
               output.start_item(itemindex)
               output.write_string(scrape_target)
@@ -232,7 +232,7 @@ def execute(config):
               index += 1
               itemindex = itemindex + 1
         except Exception as exc:
-          logging.error(LOGGING_STEP_TARGET_ERROR % (scrape_target, str(exc)))
+          logging.exception(LOGGING_STEP_TARGET_ERROR % (scrape_target, str(exc)))
           continue
 
 def parseTimevalue(timevalue, daythreshold = None):
