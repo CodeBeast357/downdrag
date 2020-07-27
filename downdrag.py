@@ -1,4 +1,4 @@
-from re import search, match as test, IGNORECASE
+from re import search, match as test, IGNORECASE, DOTALL
 from lxml import html
 from datetime import datetime
 from urllib.parse import urljoin
@@ -106,7 +106,7 @@ def execute(config):
                 feature_items = []
                 for feat in features:
                   if feat is None: continue
-                  match = search(scrape_profile[KEY_EVALUATOR], feat)
+                  match = search(scrape_profile[KEY_EVALUATOR], feat, IGNORECASE | DOTALL)
                   if not match: continue
                   value = match.group(1).replace('-', ',').strip()
                   if value.strip() != '':
@@ -153,7 +153,7 @@ def execute(config):
                           if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
                             extrainfo += '%s: %s\n' % (extrainfo_line, line)
                             target_found = False
-                        if test(target_pattern, line):
+                        if test(target_pattern, line, IGNORECASE | DOTALL):
                           extrainfo_line = line
                           target_found = True
                     else:
@@ -209,7 +209,7 @@ def execute(config):
                     schedules = detailsconversion[KEY_DETAILS_CONVERSION_PATTERN]
                     if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
                       schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
-                    try: value = parseschedule(search(schedules, detailsource, IGNORECASE))
+                    try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL))
                     except: value = truedefault
                     oldwriter = writer
                     writer = lambda values: list(map(oldwriter, values))
@@ -222,7 +222,7 @@ def execute(config):
                       matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
                     else:
                       raise KeyError(conversionprocess)
-                    gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE)
+                    gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE | DOTALL)
                     value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
                     if gotmatch:
                       try: value = matchconverter(gotmatch.groups())
