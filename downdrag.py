@@ -94,9 +94,13 @@ def execute(config):
             for item in data:
               if item is None:
                 logging.info(LOGGING_STEP_ITEM_SKIPPED % index)
+                index += 1
+                itemindex = itemindex + 1
                 continue
               try:
                 logging.info(LOGGING_STEP_ITEM_HANDLING % index)
+                index += 1
+                itemindex = itemindex + 1
                 linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
                 link = str(item.xpath(linkinfos)[0].attrib['href'])
                 infos = page.get(link)
@@ -233,8 +237,6 @@ def execute(config):
                   output.write_empty()
 
               output.end_item()
-              index += 1
-              itemindex = itemindex + 1
         except Exception as exc:
           logging.exception(LOGGING_STEP_TARGET_ERROR % (scrape_target, str(exc)))
           continue
