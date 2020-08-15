@@ -60,7 +60,7 @@ LOGGING_STEP_TARGET_ERROR = 'target %s error: %s'
 LOGGING_STEP_PAGER = 'pager'
 LOGGING_STEP_ITEM_SKIPPED = 'item %i skipped'
 LOGGING_STEP_ITEM_HANDLING = 'item %i handling'
-LOGGING_STEP_ITEM_ERROR = 'itemindex %i error: %s'
+LOGGING_STEP_ITEM_ERROR = 'index %i error: %s'
 LOGGING_STEP_ITEM_DETAILS = 'item %i details'
 
 def execute(config):
@@ -69,177 +69,185 @@ def execute(config):
   querierconfig = config[KEY_QUERIER] if KEY_QUERIER in config else {}
   details = config[KEY_DETAILS] if KEY_DETAILS in config else {}
   logging.info(LOGGING_STEP_QUERY % str(querierconfig))
+  items = []
   with DataQuerier.Create(querierconfig) as querier:
-    headers = MAIN_FIELDS.copy()
-    for detailname, detail in details.items():
-      conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
-      if conversionprocess in USAGE_TYPES_MULTIPART:
-        for headerformat in USAGE_TYPES_MULTIPART[conversionprocess]:
-          headers.append(headerformat % detailname)
-      else:
-        headers.append(detailname)
-
-    outputsconfig = config[KEY_OUTPUTS]
-    logging.info(LOGGING_STEP_OUTPUT % str(outputsconfig))
-    with ResultsWriter.Create(outputsconfig, headers) as output:
-      itemindex = 0
-      for scrape_target, scrape_profile in profiles.items():
-        logging.info(LOGGING_STEP_TARGET % scrape_target)
-        pathfinder = scrape_profile[KEY_PATHFINDER]
-        try:
-          for page in querier.pages(scrape_profile):
-            logging.info(LOGGING_STEP_PAGER)
-            data = page.xpath(scrape_profile[KEY_ITEMS])
-            index = 0
-            for item in data:
-              if item is None:
-                logging.info(LOGGING_STEP_ITEM_SKIPPED % index)
-                index += 1
-                itemindex = itemindex + 1
-                continue
-              try:
-                logging.info(LOGGING_STEP_ITEM_HANDLING % index)
-                index += 1
-                itemindex = itemindex + 1
-                linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
-                link = str(item.xpath(linkinfos)[0].attrib['href'])
-                infos = page.get(link)
-                name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
-
-                features = infos.xpath(scrape_profile[KEY_FEATURES])
-                feature_items = []
-                for feat in features:
-                  if feat is None: continue
-                  match = search(scrape_profile[KEY_EVALUATOR], feat, IGNORECASE | DOTALL)
-                  if not match: continue
-                  value = match.group(1).replace('-', ',').strip()
-                  if value.strip() != '':
-                    feature_items.append(value)
-                description = ','.join(feature_items)
-
-                extrainfo = ''
-                target_details = infos
-                evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
-                isexternaltarget = evaluatortarget == TARGET_EXTERNAL
-                extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
-                if isexternaltarget:
-                  target_details = page.get(pathfinder[KEY_EVALUATOR_LINK])
-                if isexternaltarget or evaluatortarget == TARGET_CURRENT:
-                  extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
-                  if extractmethod == PATHFINDER_TYPE_FULLTEXT:
-                    indexername = pathfinder[KEY_PATHFINDER_INDEXER]
-                    if not hasattr('', indexername):
-                      raise KeyError(indexername)
-                    extract = target_details.xpath(extractvalue)
-                    target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
-                    target_format = pathfinder[KEY_PATHFINDER_FORMAT]
-                    if target_format == PATHFINDER_FORMAT_NOW:
-                      target = now.strftime(target_pattern)
-                      target_items = target.upper().split()
-                      target_found = False
-                      for line in extract:
-                        line = cleanvalue(line)
-                        if target_found:
-                          if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                            extrainfo = line
-                            break
-                        else:
-                          if line.upper().find(' '.join(target_items)) != -1:
-                            target_found = True
-                          elif line.upper().find(''.join(target_items)) != -1:
-                            target_found = True
-                    elif target_format == PATHFINDER_FORMAT_LIST:
-                      target_found = False
-                      extrainfo_line = ''
-                      for line in extract:
-                        line = cleanvalue(line)
-                        if target_found:
-                          if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                            extrainfo += '%s: %s\n' % (extrainfo_line, line)
-                            target_found = False
-                        if test(target_pattern, line, IGNORECASE | DOTALL):
-                          extrainfo_line = line
-                          target_found = True
-                    else:
-                      raise KeyError(target_format)
-                  elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-                    expandedvalue = target_details.xpath(extractvalue % name)
-                    extrainfo = cleanvalue(expandedvalue[0]) if expandedvalue else ''
-                  else:
-                    raise KeyError(extractmethod)
-                elif evaluatortarget == TARGET_INDEX:
-                  extrainfo = cleanvalue(item.xpath(extractvalue)[0])
-                else:
-                  raise KeyError(evaluatortarget)
-              except Exception as exc:
-                logging.exception(LOGGING_STEP_ITEM_ERROR % (itemindex, str(exc)))
-                continue
-              output.start_item(itemindex)
-              output.write_string(scrape_target)
-              output.write_int(index)
-              output.write_string(name)
-              output.write_string(description)
-              output.write_string(extrainfo)
-              output.write_string(link)
-
-              logging.info(LOGGING_STEP_ITEM_DETAILS % index)
-              detailvalues = {}
-              for detailname, detail in details.items():
-                try:
-                  detailsource = description
-                  if KEY_DETAILS_SOURCE in detail:
-                    detailsource = locals()[detail[KEY_DETAILS_SOURCE]]
-                  truedefault = ''
-                  writer = output.write_string
-                  valueconverter = lambda value: value
-                  detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
-                  if detailstype == TYPE_INT:
-                    truedefault = 0
-                    writer = output.write_int
-                    valueconverter = int
-                  elif detailstype == TYPE_FLOAT:
-                    truedefault = 0.
-                    writer = output.write_float
-                    valueconverter = float
-                  elif detailstype != TYPE_STRING:
-                    raise KeyError(detailstype)
-                  value = None
-                  detailsconversion = detail[KEY_DETAILS_CONVERSION]
-                  conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
-                  if conversionprocess == CONVERSION_LAYER:
-                    try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], detailvalues)
-                    except: value = truedefault
-                  elif conversionprocess == CONVERSION_SCHEDULE:
-                    schedules = detailsconversion[KEY_DETAILS_CONVERSION_PATTERN]
-                    if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
-                      schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
-                    try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL))
-                    except: value = truedefault
-                    oldwriter = writer
-                    writer = lambda values: list(map(oldwriter, values))
-                  else:
-                    matchconverter = lambda matches: ','.join(matches) if matches else truedefault
-                    gotmatch = False
-                    if conversionprocess == CONVERSION_VALUE:
-                      matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
-                    elif conversionprocess == CONVERSION_CALCULATE:
-                      matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
-                    else:
-                      raise KeyError(conversionprocess)
-                    gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE | DOTALL)
-                    value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
-                    if gotmatch:
-                      try: value = matchconverter(gotmatch.groups())
-                      except: value = truedefault
-                  detailvalues[detailname] = value
-                  writer(value)
-                except:
-                  output.write_empty()
-
-              output.end_item()
+    for source, scrape_profile in profiles.items():
+      logging.info(LOGGING_STEP_TARGET % source)
+      pathfinder = scrape_profile[KEY_PATHFINDER]
+      for page in querier.pages(scrape_profile):
+        logging.info(LOGGING_STEP_PAGER)
+        try: data = page.xpath(scrape_profile[KEY_ITEMS])
         except Exception as exc:
-          logging.exception(LOGGING_STEP_TARGET_ERROR % (scrape_target, str(exc)))
+          logging.exception(LOGGING_STEP_TARGET_ERROR % (source, str(exc)))
           continue
+        index = 0
+        for item in data:
+          if item is None:
+            logging.info(LOGGING_STEP_ITEM_SKIPPED % index)
+            index += 1
+            continue
+          try:
+            logging.info(LOGGING_STEP_ITEM_HANDLING % index)
+            linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
+            link = str(item.xpath(linkinfos)[0].attrib['href'])
+            infos = page.get(link)
+            name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
+
+            features = infos.xpath(scrape_profile[KEY_FEATURES])
+            feature_items = []
+            for feat in features:
+              if feat is None: continue
+              match = search(scrape_profile[KEY_EVALUATOR], feat, IGNORECASE | DOTALL)
+              if not match: continue
+              value = match.group(1).replace('-', ',').strip()
+              if value.strip() != '':
+                feature_items.append(value)
+            description = ','.join(feature_items)
+
+            extrainfo = ''
+            target_details = infos
+            evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
+            isexternaltarget = evaluatortarget == TARGET_EXTERNAL
+            extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
+            if isexternaltarget:
+              target_details = page.get(pathfinder[KEY_EVALUATOR_LINK])
+            if isexternaltarget or evaluatortarget == TARGET_CURRENT:
+              extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
+              if extractmethod == PATHFINDER_TYPE_FULLTEXT:
+                indexername = pathfinder[KEY_PATHFINDER_INDEXER]
+                if not hasattr('', indexername):
+                  raise KeyError(indexername)
+                extract = target_details.xpath(extractvalue)
+                target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
+                target_format = pathfinder[KEY_PATHFINDER_FORMAT]
+                if target_format == PATHFINDER_FORMAT_NOW:
+                  target = now.strftime(target_pattern)
+                  target_items = target.upper().split()
+                  target_found = False
+                  for line in extract:
+                    line = cleanvalue(line)
+                    if target_found:
+                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                        extrainfo = line
+                        break
+                    else:
+                      if line.upper().find(' '.join(target_items)) != -1:
+                        target_found = True
+                      elif line.upper().find(''.join(target_items)) != -1:
+                        target_found = True
+                elif target_format == PATHFINDER_FORMAT_LIST:
+                  target_found = False
+                  extrainfo_line = ''
+                  for line in extract:
+                    line = cleanvalue(line)
+                    if target_found:
+                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                        extrainfo += '%s: %s\n' % (extrainfo_line, line)
+                        target_found = False
+                    if test(target_pattern, line, IGNORECASE | DOTALL):
+                      extrainfo_line = line
+                      target_found = True
+                else:
+                  raise KeyError(target_format)
+              elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
+                expandedvalue = target_details.xpath(extractvalue % name)
+                extrainfo = cleanvalue(expandedvalue[0]) if expandedvalue else ''
+              else:
+                raise KeyError(extractmethod)
+            elif evaluatortarget == TARGET_INDEX:
+              extrainfo = cleanvalue(item.xpath(extractvalue)[0])
+            else:
+              raise KeyError(evaluatortarget)
+            items.append({k: {'value': v} for k, v in vars().items() if k in MAIN_FIELDS})
+          except Exception as exc:
+            logging.exception(LOGGING_STEP_ITEM_ERROR % (index, str(exc)))
+          index += 1
+
+  for index, item in enumerate(items):
+    logging.info(LOGGING_STEP_ITEM_DETAILS % index)
+    for detailname, detail in details.items():
+      try:
+        detailsource = item['description']['value']
+        if KEY_DETAILS_SOURCE in detail:
+          detailsource = item[detail[KEY_DETAILS_SOURCE]]['value']
+        truedefault = ''
+        writer = lambda output, value: output.write_string(value)
+        valueconverter = lambda value: value
+        detailstype = detail[KEY_DETAILS_TYPE] if KEY_DETAILS_TYPE in detail else TYPE_STRING
+        if detailstype == TYPE_INT:
+          truedefault = 0
+          writer = lambda output, value: output.write_int(value)
+          valueconverter = int
+        elif detailstype == TYPE_FLOAT:
+          truedefault = 0.
+          writer = lambda output, value: output.write_float(value)
+          valueconverter = float
+        elif detailstype != TYPE_STRING:
+          raise KeyError(detailstype)
+        value = None
+        detailsconversion = detail[KEY_DETAILS_CONVERSION]
+        conversionprocess = detailsconversion[KEY_DETAILS_CONVERSION_PROCESS]
+        if conversionprocess == CONVERSION_LAYER:
+          try: value = calculatelayer(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA], {k: v['value'] for k, v in item.items()})
+          except: value = truedefault
+        elif conversionprocess == CONVERSION_SCHEDULE:
+          schedules = detailsconversion[KEY_DETAILS_CONVERSION_PATTERN]
+          if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
+            schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
+          try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL))
+          except: value = truedefault
+          oldwriter = writer
+          writer = lambda output, values: list(map(lambda value: oldwriter(output, value), values))
+        else:
+          matchconverter = lambda matches: ','.join(matches) if matches else truedefault
+          gotmatch = False
+          if conversionprocess == CONVERSION_VALUE:
+            matchconverter = lambda matches: valueconverter(matches[0]) if matches else truedefault
+          elif conversionprocess == CONVERSION_CALCULATE:
+            matchconverter = lambda matches: eval(detailsconversion[KEY_DETAILS_CONVERSION_FORMULA] % tuple(val or truedefault for val in matches)) if matches else truedefault
+          else:
+            raise KeyError(conversionprocess)
+          gotmatch = search(detailsconversion[KEY_DETAILS_CONVERSION_PATTERN], detailsource, IGNORECASE | DOTALL)
+          value = valueconverter(detail[KEY_DETAILS_DEFAULT]) if KEY_DETAILS_DEFAULT in detail else truedefault
+          if gotmatch:
+            try: value = matchconverter(gotmatch.groups())
+            except: value = truedefault
+        item[detailname] = {
+          'value': value,
+          'writer': writer
+        }
+      except:
+        item[detailname] = {
+          'value': None,
+          'writer': lambda output, value: output.write_empty()
+        }
+
+  headers = MAIN_FIELDS.copy()
+  for detailname, detail in details.items():
+    conversionprocess = detail[KEY_DETAILS_CONVERSION][KEY_DETAILS_CONVERSION_PROCESS]
+    if conversionprocess in USAGE_TYPES_MULTIPART:
+      for headerformat in USAGE_TYPES_MULTIPART[conversionprocess]:
+        headers.append(headerformat % detailname)
+    else:
+      headers.append(detailname)
+
+  outputsconfig = config[KEY_OUTPUTS]
+  logging.info(LOGGING_STEP_OUTPUT % str(outputsconfig))
+  itemindex = 0
+  with ResultsWriter.Create(outputsconfig, headers) as output:
+    for item in items:
+      output.start_item(itemindex)
+      output.write_string(item['source']['value'])
+      output.write_int(item['index']['value'])
+      output.write_string(item['name']['value'])
+      output.write_string(item['description']['value'])
+      output.write_string(item['extrainfo']['value'])
+      output.write_string(item['link']['value'])
+      for detailname in details.keys():
+        detailconfig = item[detailname]
+        detailconfig['writer'](output, detailconfig['value'])
+      output.end_item()
+      itemindex += 1
 
 def parseTimevalue(timevalue, daythreshold = None):
   timevalue = timevalue.upper()
