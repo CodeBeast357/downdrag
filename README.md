@@ -105,6 +105,7 @@ Mechanism of querying the data:
   - dynamic: use a selenium web driver
 - driver: only for dynamic mode, one of Firefox, Chrome, Ie or WebKitGTK
 - argsline: engine command line arguments, only for dynamic mode
+- cached: whether or not the querier is cached
 
 ### outputs
 

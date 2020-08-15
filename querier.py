@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 KEY_QUERIER_MODE = 'mode'
 KEY_QUERIER_DRIVER = 'driver'
 KEY_QUERIER_ARGSLINE = 'argsline'
+KEY_QUERIER_CACHED = 'cached'
 KEY_URL = 'url'
 KEY_PAGERS = 'pagers'
 KEY_PAGERS_ACTION = 'action'
@@ -42,11 +43,15 @@ class DataQuerier(ABC):
         break
   @staticmethod
   def Create(querierconfig):
-    querier = querierconfig[KEY_QUERIER_MODE] if KEY_QUERIER_MODE in querierconfig else QUERIER_PLAIN
-    if querier == QUERIER_SECURE: return SecureDataQuerier()
-    elif querier == QUERIER_PLAIN: return PlainDataQuerier()
-    elif querier == QUERIER_DYNAMIC: return DynamicDataQuerier(querierconfig)
-    else: raise KeyError(querier)
+    mode = querierconfig[KEY_QUERIER_MODE] if KEY_QUERIER_MODE in querierconfig else QUERIER_PLAIN
+    cached = querierconfig[KEY_QUERIER_CACHED] if KEY_QUERIER_CACHED in querierconfig else False
+    if mode == QUERIER_SECURE: querier = SecureDataQuerier()
+    elif mode == QUERIER_PLAIN: querier = PlainDataQuerier()
+    elif mode == QUERIER_DYNAMIC: querier = DynamicDataQuerier(querierconfig)
+    else: raise KeyError(mode)
+    if cached:
+      querier = CachedDataQuerier(querier)
+    return querier
   class PageData(object):
     def __init__(self, tree, querier, url):
       self.__tree = tree
@@ -134,3 +139,16 @@ class DynamicDataQuerier(DataQuerier):
     else:
       for page in super().pages(scrape_profile):
         yield page
+
+class CachedDataQuerier(DataQuerier):
+  def __init__(self, querier):
+    self.__querier = querier
+    self.__cached_content = {}
+  def __enter__(self):
+    return self
+  def __exit__(self, type, value, tb):
+    self.__querier.__exit__(type, value, tb)
+  def _get_content(self, link):
+    if link not in self.__cached_content:
+      self.__cached_content[link] = self.__querier._get_content(link)
+    return self.__cached_content[link]
