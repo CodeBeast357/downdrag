@@ -90,6 +90,7 @@ def execute(config):
             logging.info(LOGGING_STEP_ITEM_HANDLING % index)
             linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
             link = str(item.xpath(linkinfos)[0].attrib['href'])
+            link = page.rebase_link(link)
             infos = page.get(link)
             name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
 
