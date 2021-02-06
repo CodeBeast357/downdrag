@@ -145,6 +145,7 @@ class CachedDataQuerier(DataQuerier):
     self.__querier = querier
     self.__cached_content = {}
   def __enter__(self):
+    self.__querier.__enter__()
     return self
   def __exit__(self, type, value, tb):
     self.__querier.__exit__(type, value, tb)
