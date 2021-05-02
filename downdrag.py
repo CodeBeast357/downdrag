@@ -263,9 +263,9 @@ def parseTimevalue(timevalue, daythreshold = None):
     time_hours = int(time_parts[0])
     if time_hours == 0:
       time_hours = 24
-    elif time_period == 'AM' and time_hours < 10:
+    elif time_period == 'AM' and time_hours < 5:
       time_hours += 24
-    elif (time_period == 'PM') != (time_hours == 12):
+    elif (time_period == 'PM') != (time_hours == 12) and time_hours < 12:
       time_hours += 12
     time_parts[0] = str(time_hours)
     if len(time_parts) > 1:
@@ -273,7 +273,7 @@ def parseTimevalue(timevalue, daythreshold = None):
         time_parts[-1] = '00'
       else:
         time_parts[-1] = time_parts[-1][:-2]
-  elif int(time_parts[0]) < 10:
+  elif int(time_parts[0]) < 5:
     time_parts[0] = str(int(time_parts[0]) + 12)
   if len(time_parts) == 1:
     time_parts.append('00')
