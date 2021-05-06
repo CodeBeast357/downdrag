@@ -4,7 +4,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 from abc import ABC, abstractmethod
 from querier import DataQuerier
-from outputs import ResultsWriter
+from outputs import ResultsWriterFactory
 import logging
 
 APPLICATION_NAME = 'downdrag'
@@ -63,7 +63,7 @@ LOGGING_STEP_ITEM_HANDLING = 'item %i handling'
 LOGGING_STEP_ITEM_ERROR = 'index %i error: %s'
 LOGGING_STEP_ITEM_DETAILS = 'item %i details'
 
-def execute(config):
+def execute(config, output_definitions=None):
   now = datetime.now()
   profiles = config[KEY_PROFILES]
   querierconfig = config[KEY_QUERIER] if KEY_QUERIER in config else {}
@@ -232,10 +232,11 @@ def execute(config):
     else:
       headers.append(detailname)
 
+  results_writer_factory = ResultsWriterFactory(output_definitions)
   outputsconfig = config[KEY_OUTPUTS]
   logging.info(LOGGING_STEP_OUTPUT % str(outputsconfig))
   itemindex = 0
-  with ResultsWriter.Create(outputsconfig, headers) as output:
+  with results_writer_factory.create(outputsconfig, headers) as output:
     for item in items:
       output.start_item(itemindex)
       output.write_string(item['source']['value'])

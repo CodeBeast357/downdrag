@@ -11,6 +11,23 @@ KEY_HTML_TITLE = 'title'
 KEY_HTML_SCRIPTS = 'scripts'
 KEY_HTML_STYLES = 'styles'
 
+DEFAULT_OUTPUT_DEFINITIONS = {
+  KEY_CSV: lambda output_config, headers: CsvResultsWriter(output_config, headers),
+  KEY_MYSQL: lambda output_config, headers: MySqlResultsWriter(output_config, headers),
+  KEY_HTML: lambda output_config, headers: HtmlResultsWriter(output_config, headers)
+}
+
+class ResultsWriterFactory:
+  def __init__(self, output_definitions=None):
+    self.output_definitions = output_definitions if output_definitions else DEFAULT_OUTPUT_DEFINITIONS
+  def create(self, outputsconfig, headers):
+    if len(outputsconfig) > 1: return PipelineResultsWriter(outputsconfig, headers, self)
+    else:
+      output_format, output_config = next(output_key for output_key in outputsconfig.items())
+      if output_format in self.output_definitions:
+        return self.output_definitions[output_format](output_config, headers)
+      else: raise KeyError(output_format)
+
 class ResultsWriter(ABC):
   def __init__(self, headers):
     self.headers = headers
@@ -38,15 +55,6 @@ class ResultsWriter(ABC):
   @abstractmethod
   def end_item(self):
     raise NotImplementedError
-  @staticmethod
-  def Create(outputsconfig, headers):
-    if len(outputsconfig) > 1: return PipelineResultsWriter(outputsconfig, headers)
-    else:
-      output_format, output_config = next(output_key for output_key in outputsconfig.items())
-      if output_format == KEY_CSV: return CsvResultsWriter(output_config, headers)
-      elif output_format == KEY_MYSQL: return MySqlResultsWriter(output_config, headers)
-      elif output_format == KEY_HTML: return HtmlResultsWriter(output_config, headers)
-      else: raise KeyError(output_format)
 
 class CsvResultsWriter(ResultsWriter):
   def __init__(self, csvconfig, headers):
@@ -162,11 +170,11 @@ class HtmlResultsWriter(ResultsWriter):
       </tr>""")
 
 class PipelineResultsWriter(ResultsWriter):
-  def __init__(self, outputsconfig, headers):
+  def __init__(self, outputsconfig, headers, results_writer_factory):
     self.pipeline = []
     for item_format, item_config in outputsconfig.items():
       output_config = { item_format: item_config }
-      self.pipeline.append(ResultsWriter.Create(output_config, headers))
+      self.pipeline.append(results_writer_factory.create(output_config, headers))
   def __enter__(self):
     for item in self.pipeline:
       item.__enter__()
