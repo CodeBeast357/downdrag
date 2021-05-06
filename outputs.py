@@ -6,7 +6,7 @@ KEY_MYSQL = 'mysql'
 KEY_MYSQL_CONNECTIONINFOS = 'connectioninfos'
 KEY_MYSQL_TABLENAME = 'tablename'
 KEY_HTML = 'html'
-KEY_HTML_FILANEME = 'filename'
+KEY_HTML_FILENAME = 'filename'
 KEY_HTML_TITLE = 'title'
 KEY_HTML_SCRIPTS = 'scripts'
 KEY_HTML_STYLES = 'styles'
@@ -112,7 +112,7 @@ class MySqlResultsWriter(ResultsWriter):
 class HtmlResultsWriter(ResultsWriter):
   def __init__(self, htmlconfig, headers):
     super().__init__(headers)
-    self.filename = htmlconfig[KEY_HTML_FILANEME]
+    self.filename = htmlconfig[KEY_HTML_FILENAME]
     self.title = htmlconfig[KEY_HTML_TITLE] if KEY_HTML_TITLE in htmlconfig else None
     self.scripts = htmlconfig[KEY_HTML_SCRIPTS] if KEY_HTML_SCRIPTS in htmlconfig else []
     self.styles = htmlconfig[KEY_HTML_STYLES] if KEY_HTML_STYLES in htmlconfig else []
