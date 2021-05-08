@@ -151,12 +151,11 @@ def execute(config, output_definitions=None):
                 else:
                   raise KeyError(target_format)
               elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-                expandedvalue = target_details.xpath(extractvalue % name)
-                extrainfo = cleanvalue(expandedvalue[0]) if expandedvalue else ''
+                extrainfo = cleantextnodes(target_details.xpath(extractvalue % name))
               else:
                 raise KeyError(extractmethod)
             elif evaluatortarget == TARGET_INDEX:
-              extrainfo = cleanvalue(item.xpath(extractvalue)[0])
+              extrainfo = cleantextnodes(item.xpath(extractvalue))
             else:
               raise KeyError(evaluatortarget)
             items.append({k: {'value': v} for k, v in vars().items() if k in MAIN_FIELDS})
@@ -305,6 +304,10 @@ def cleanvalue(value):
 
 def cleanfiledatetime(value):
   return value.isoformat().translate({ord(ch): ord('-') for ch in [':', '.']})
+
+def cleantextnodes(nodes):
+  if not nodes: return ''
+  return '\n'.join(cleanvalue(val) for val in nodes)
 
 if __name__ == "__main__":
   from confuse import Configuration
