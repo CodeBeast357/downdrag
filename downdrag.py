@@ -312,12 +312,13 @@ def cleantextnodes(nodes):
 if __name__ == "__main__":
   from confuse import Configuration
   from yamale import make_schema, make_data, validate
+  from sys import exit
   logging.basicConfig(filename=LOGGING_FILE % cleanfiledatetime(datetime.now()), level=logging.INFO)
   try: validate(make_schema(APPLICATION_CONFIG_SCHEMA), make_data(APPLICATION_CONFIG_FILENAME))
   except:
-    import sys
     print("Configuration isn't valid.")
-    sys.exit(-1)
+    exit(-1)
   config = Configuration(APPLICATION_NAME)
   config.set_file(APPLICATION_CONFIG_FILENAME)
   execute(config.get())
+  exit(0)
