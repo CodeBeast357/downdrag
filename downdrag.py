@@ -1,8 +1,5 @@
 from re import search, match as test, IGNORECASE, DOTALL
-from lxml import html
 from datetime import datetime
-from urllib.parse import urljoin
-from abc import ABC, abstractmethod
 from querier import DataQuerier
 from outputs import ResultsWriterFactory
 import logging
