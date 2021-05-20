@@ -74,94 +74,94 @@ def execute(config, output_definitions=None):
     for source, scrape_profile in profiles.items():
       logging.info(LOGGING_STEP_TARGET % source)
       pathfinder = scrape_profile[KEY_PATHFINDER]
-      for page in querier.pages(scrape_profile):
-        logging.info(LOGGING_STEP_PAGER)
-        try: data = page.xpath(scrape_profile[KEY_ITEMS])
-        except Exception as exc:
-          logging.exception(LOGGING_STEP_TARGET_ERROR % (source, str(exc)))
-          continue
-        index = 0
-        for item in data:
-          if item is None:
-            logging.info(LOGGING_STEP_ITEM_SKIPPED % index)
-            index += 1
-            continue
-          try:
-            logging.info(LOGGING_STEP_ITEM_HANDLING % index)
-            linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
-            link = str(item.xpath(linkinfos)[0].attrib['href'])
-            link = page.rebase_link(link)
-            infos = page.get(link)
-            name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
+      try:
+        for page in querier.pages(scrape_profile):
+          logging.info(LOGGING_STEP_PAGER)
+          data = page.xpath(scrape_profile[KEY_ITEMS])
+          index = 0
+          for item in data:
+            if item is None:
+              logging.info(LOGGING_STEP_ITEM_SKIPPED % index)
+              index += 1
+              continue
+            try:
+              logging.info(LOGGING_STEP_ITEM_HANDLING % index)
+              linkinfos = scrape_profile[KEY_INFOS] if KEY_INFOS in scrape_profile else 'descendant::a'
+              link = str(item.xpath(linkinfos)[0].attrib['href'])
+              link = page.rebase_link(link)
+              infos = page.get(link)
+              name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
 
-            features = infos.xpath(scrape_profile[KEY_FEATURES])
-            feature_items = []
-            for feat in features:
-              if feat is None: continue
-              match = search(scrape_profile[KEY_EVALUATOR], feat, IGNORECASE | DOTALL)
-              if not match: continue
-              value = match.group(1).replace('-', ',').strip()
-              if value.strip() != '':
-                feature_items.append(value)
-            description = ','.join(feature_items)
+              features = infos.xpath(scrape_profile[KEY_FEATURES])
+              feature_items = []
+              for feat in features:
+                if feat is None: continue
+                match = search(scrape_profile[KEY_EVALUATOR], feat, IGNORECASE | DOTALL)
+                if not match: continue
+                value = match.group(1).replace('-', ',').strip()
+                if value.strip() != '':
+                  feature_items.append(value)
+              description = ','.join(feature_items)
 
-            extrainfo = ''
-            target_details = infos
-            evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
-            isexternaltarget = evaluatortarget == TARGET_EXTERNAL
-            extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
-            if isexternaltarget:
-              target_details = page.get(pathfinder[KEY_EVALUATOR_LINK])
-            if isexternaltarget or evaluatortarget == TARGET_CURRENT:
-              extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
-              if extractmethod == PATHFINDER_TYPE_FULLTEXT:
-                indexername = pathfinder[KEY_PATHFINDER_INDEXER]
-                if not hasattr('', indexername):
-                  raise KeyError(indexername)
-                extract = target_details.xpath(extractvalue)
-                target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
-                target_format = pathfinder[KEY_PATHFINDER_FORMAT]
-                if target_format == PATHFINDER_FORMAT_NOW:
-                  target = now.strftime(target_pattern)
-                  target_items = target.upper().split()
-                  target_found = False
-                  for line in extract:
-                    line = cleanvalue(line)
-                    if target_found:
-                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                        extrainfo = line
-                        break
-                    else:
-                      if line.upper().find(' '.join(target_items)) != -1:
+              extrainfo = ''
+              target_details = infos
+              evaluatortarget = pathfinder[KEY_PATHFINDER_TARGET]
+              isexternaltarget = evaluatortarget == TARGET_EXTERNAL
+              extractvalue = pathfinder[KEY_PATHFINDER_VALUE]
+              if isexternaltarget:
+                target_details = page.get(pathfinder[KEY_EVALUATOR_LINK])
+              if isexternaltarget or evaluatortarget == TARGET_CURRENT:
+                extractmethod = pathfinder[KEY_PATHFINDER_TYPE]
+                if extractmethod == PATHFINDER_TYPE_FULLTEXT:
+                  indexername = pathfinder[KEY_PATHFINDER_INDEXER]
+                  if not hasattr('', indexername):
+                    raise KeyError(indexername)
+                  extract = target_details.xpath(extractvalue)
+                  target_pattern = pathfinder[KEY_PATHFINDER_PATTERN]
+                  target_format = pathfinder[KEY_PATHFINDER_FORMAT]
+                  if target_format == PATHFINDER_FORMAT_NOW:
+                    target = now.strftime(target_pattern)
+                    target_items = target.upper().split()
+                    target_found = False
+                    for line in extract:
+                      line = cleanvalue(line)
+                      if target_found:
+                        if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                          extrainfo = line
+                          break
+                      else:
+                        if line.upper().find(' '.join(target_items)) != -1:
+                          target_found = True
+                        elif line.upper().find(''.join(target_items)) != -1:
+                          target_found = True
+                  elif target_format == PATHFINDER_FORMAT_LIST:
+                    target_found = False
+                    extrainfo_line = ''
+                    for line in extract:
+                      line = cleanvalue(line)
+                      if target_found:
+                        if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
+                          extrainfo += '%s: %s\n' % (extrainfo_line, line)
+                          target_found = False
+                      if test(target_pattern, line, IGNORECASE | DOTALL):
+                        extrainfo_line = line
                         target_found = True
-                      elif line.upper().find(''.join(target_items)) != -1:
-                        target_found = True
-                elif target_format == PATHFINDER_FORMAT_LIST:
-                  target_found = False
-                  extrainfo_line = ''
-                  for line in extract:
-                    line = cleanvalue(line)
-                    if target_found:
-                      if (isexternaltarget and getattr(line, indexername)(name.upper())) or (not isexternaltarget and line != ''):
-                        extrainfo += '%s: %s\n' % (extrainfo_line, line)
-                        target_found = False
-                    if test(target_pattern, line, IGNORECASE | DOTALL):
-                      extrainfo_line = line
-                      target_found = True
+                  else:
+                    raise KeyError(target_format)
+                elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
+                  extrainfo = cleantextnodes(target_details.xpath(extractvalue % name))
                 else:
-                  raise KeyError(target_format)
-              elif extractmethod == PATHFINDER_TYPE_SHOWCASE:
-                extrainfo = cleantextnodes(target_details.xpath(extractvalue % name))
+                  raise KeyError(extractmethod)
+              elif evaluatortarget == TARGET_INDEX:
+                extrainfo = cleantextnodes(item.xpath(extractvalue))
               else:
-                raise KeyError(extractmethod)
-            elif evaluatortarget == TARGET_INDEX:
-              extrainfo = cleantextnodes(item.xpath(extractvalue))
-            else:
-              raise KeyError(evaluatortarget)
-            items.append({k: {'value': v} for k, v in vars().items() if k in MAIN_FIELDS})
-          except Exception as exc:
-            logging.exception(LOGGING_STEP_ITEM_ERROR % (index, str(exc)))
-          index += 1
+                raise KeyError(evaluatortarget)
+              items.append({k: {'value': v} for k, v in vars().items() if k in MAIN_FIELDS})
+            except Exception as exc:
+              logging.exception(LOGGING_STEP_ITEM_ERROR % (index, str(exc)))
+            index += 1
+      except Exception as exc:
+        logging.exception(LOGGING_STEP_TARGET_ERROR % (source, str(exc)))
 
   for index, item in enumerate(items):
     logging.info(LOGGING_STEP_ITEM_DETAILS % index)
