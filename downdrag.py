@@ -192,7 +192,7 @@ def execute(config, output_definitions=None):
           if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
             schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
           try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL))
-          except: value = truedefault
+          except: value = (truedefault, truedefault)
           oldwriter = writer
           writer = lambda output, values: list(map(lambda value: oldwriter(output, value), values))
         else:
