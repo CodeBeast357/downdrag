@@ -95,7 +95,9 @@ class SecureDataQuerier(DataQuerier):
     return self
   def __exit__(self, type, value, tb):
     self.request.close()
+    self.adapter.close()
     self.guard.close()
+    self.tor.close()
   def _get_content(self, link):
     from torpy.guard import GuardState
     if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
