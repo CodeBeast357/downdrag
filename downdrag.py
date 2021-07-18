@@ -266,7 +266,7 @@ def parseTimevalue(timevalue, daysplit = -1, daythreshold = None):
       time_hours = 24
     elif time_period == 'AM' and time_hours < daysplit:
       time_hours += 24
-    elif (time_period == 'PM') != (time_hours == 12) and time_hours < 12:
+    elif time_period == 'PM' and time_hours < 12:
       time_hours += 12
     time_parts[0] = str(time_hours)
     if len(time_parts) > 1:
