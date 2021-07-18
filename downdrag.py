@@ -14,6 +14,7 @@ KEY_DETAILS_CONVERSION_PROCESS = 'process'
 KEY_DETAILS_CONVERSION_PATTERN = 'pattern'
 KEY_DETAILS_CONVERSION_FORMULA = 'formula'
 KEY_DETAILS_CONVERSION_CASE = 'case'
+KEY_DETAILS_CONVERSION_THRESHOLD = 'threshold'
 KEY_DETAILS_DEFAULT = 'default'
 KEY_DETAILS_SOURCE = 'source'
 KEY_PROFILES = 'profiles'
@@ -191,7 +192,10 @@ def execute(config, output_definitions=None):
           schedules = detailsconversion[KEY_DETAILS_CONVERSION_PATTERN]
           if KEY_DETAILS_CONVERSION_CASE in detailsconversion:
             schedules = schedules % now.strftime(detailsconversion[KEY_DETAILS_CONVERSION_CASE])
-          try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL))
+          daysplit = -1
+          if KEY_DETAILS_CONVERSION_THRESHOLD in detailsconversion:
+            daysplit = int(detailsconversion[KEY_DETAILS_CONVERSION_THRESHOLD])
+          try: value = parseschedule(search(schedules, detailsource, IGNORECASE | DOTALL), daysplit)
           except: value = (truedefault, truedefault)
           oldwriter = writer
           writer = lambda output, values: list(map(lambda value: oldwriter(output, value), values))
@@ -247,7 +251,7 @@ def execute(config, output_definitions=None):
       output.end_item()
       itemindex += 1
 
-def parseTimevalue(timevalue, daythreshold = None):
+def parseTimevalue(timevalue, daysplit = -1, daythreshold = None):
   timevalue = timevalue.upper()
   value_separator = ':'
   if timevalue.find(value_separator) == -1:
@@ -260,7 +264,7 @@ def parseTimevalue(timevalue, daythreshold = None):
     time_hours = int(time_parts[0])
     if time_hours == 0:
       time_hours = 24
-    elif time_period == 'AM' and time_hours < 5:
+    elif time_period == 'AM' and time_hours < daysplit:
       time_hours += 24
     elif (time_period == 'PM') != (time_hours == 12) and time_hours < 12:
       time_hours += 12
@@ -270,7 +274,7 @@ def parseTimevalue(timevalue, daythreshold = None):
         time_parts[-1] = '00'
       else:
         time_parts[-1] = time_parts[-1][:-2]
-  elif int(time_parts[0]) < 5:
+  elif int(time_parts[0]) < daysplit:
     time_parts[0] = str(int(time_parts[0]) + 12)
   if len(time_parts) == 1:
     time_parts.append('00')
@@ -287,13 +291,13 @@ def calculatelayer(formula, detailvalues):
     parsedformula = parsedformula.replace(name, str(value))
   return eval(parsedformula)
 
-def parseschedule(match):
+def parseschedule(match, daysplit = -1):
   start = ''
   end = ''
   if match:
-    start = parseTimevalue(match[1])
+    start = parseTimevalue(match[1], daysplit)
     if match[2]:
-      end = parseTimevalue(match[2], start)
+      end = parseTimevalue(match[2], daysplit, start)
   return (start, end)
 
 def cleanvalue(value):

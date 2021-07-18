@@ -37,6 +37,7 @@ conversion-schedule:
   process: enum('schedule')
   pattern: str()
   case: str(required=False)
+  threshold: int(required=False)
 conversion-calculate:
   process: enum('calculate')
   pattern: str()
