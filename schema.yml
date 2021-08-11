@@ -1,14 +1,16 @@
-querier: any(include('querier-simple'), include('querier-extended'), required=False)
-outputs: any(include('outputs-csv'), include('outputs-mysql'), include('outputs-html'))
+querier: any(include('querier-simple'), include('querier-extended'))
+outputs: any(include('outputs-csv'), include('outputs-mysql'), include('outputs-html'), any())
 details: map(include('details-item'), required=False)
 profiles: map(include('profile-item'))
 ---
 querier-simple:
   mode: enum('plain', 'secure', required=False)
+  cached: bool(required=False)
 querier-extended:
   mode: enum('dynamic')
   driver: str()
   argsline: str(required=False)
+  cached: bool(required=False)
 
 outputs-csv:
   csv:
@@ -63,7 +65,10 @@ pagers-dynamic:
 pathfinder-current-fulltext:
   target: enum('current')
   type: enum('fulltext')
+  pattern: str()
   format: enum('now', 'list')
+  indexer: str()
+  value: str()
 pathfinder-current-showcase:
   target: enum('current')
   type: enum('showcase')
@@ -72,8 +77,10 @@ pathfinder-external-fulltext:
   target: enum('external')
   link: str()
   type: enum('fulltext')
+  pattern: str()
   format: enum('now', 'list')
   indexer: str()
+  value: str()
 pathfinder-external-showcase:
   target: enum('external')
   link: str()
