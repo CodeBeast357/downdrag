@@ -22,11 +22,13 @@ class DataQuerier(ABC):
   def __exit__(self, type, value, tb):
     raise NotImplementedError
   @abstractmethod
-  def _get_content(self, link):
+  def get_content(self, link):
     raise NotImplementedError
+  def get(self, link):
+      return html.fromstring(self.get_content(link))
   def pages(self, scrape_profile):
     url = scrape_profile[KEY_URL]
-    tree = html.fromstring(self._get_content(url))
+    tree = self.get(url)
     data = DataQuerier.PageData(tree, self, url)
     yield data
     if KEY_PAGERS not in scrape_profile: return
@@ -36,7 +38,7 @@ class DataQuerier(ABC):
       pagers = tree.xpath(pagers_value)
       if pagers:
         url = data.rebase_link(str(pagers[0].attrib['href']))
-        tree = html.fromstring(self._get_content(url))
+        tree = self.get(url)
         data = DataQuerier.PageData(tree, self, url)
         yield data
       else:
@@ -66,7 +68,7 @@ class DataQuerier(ABC):
     def xpath(self, query):
       return self.__tree.xpath(query)
     def get(self, link):
-      return html.fromstring(self.__querier._get_content(self.rebase_link(link)))
+      return html.fromstring(self.__querier.get_content(self.rebase_link(link)))
 
 class PlainDataQuerier(DataQuerier):
   def __init__(self):
@@ -76,7 +78,7 @@ class PlainDataQuerier(DataQuerier):
     return self
   def __exit__(self, type, value, tb):
     pass
-  def _get_content(self, link):
+  def get_content(self, link):
     return self.__get(link).content
 
 class SecureDataQuerier(DataQuerier):
@@ -98,7 +100,7 @@ class SecureDataQuerier(DataQuerier):
     self.adapter.close()
     self.guard.close()
     self.tor.close()
-  def _get_content(self, link):
+  def get_content(self, link):
     from torpy.guard import GuardState
     if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
     return self.__get(link).content
@@ -120,7 +122,7 @@ class DynamicDataQuerier(DataQuerier):
     return self
   def __exit__(self, type, value, tb):
     self.__driver.quit()
-  def _get_content(self, link):
+  def get_content(self, link):
     self.__driver.get(link)
     return self.__driver.find_element_by_tag_name('html').get_attribute('outerHTML')
   def pages(self, scrape_profile):
@@ -151,7 +153,7 @@ class CachedDataQuerier(DataQuerier):
     return self
   def __exit__(self, type, value, tb):
     self.__querier.__exit__(type, value, tb)
-  def _get_content(self, link):
+  def get_content(self, link):
     if link not in self.__cached_content:
-      self.__cached_content[link] = self.__querier._get_content(link)
+      self.__cached_content[link] = self.__querier.get_content(link)
     return self.__cached_content[link]
