@@ -87,7 +87,7 @@ def execute(config, output_definitions=None):
               link = str(item.xpath(linkinfos)[0].attrib['href'])
               link = page.rebase_link(link)
               infos = page.get(link)
-              name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0].split()[0])
+              name = cleanvalue(infos.xpath(scrape_profile[KEY_NAME])[0])
 
               features = infos.xpath(scrape_profile[KEY_FEATURES])
               feature_items = []
