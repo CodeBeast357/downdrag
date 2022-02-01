@@ -263,7 +263,7 @@ def parseTimevalue(timevalue, daysplit = -1, daythreshold = None):
     if time_parts[0].find('M') != -1:
       time_parts[0] = time_parts[0][:-2]
     time_hours = int(time_parts[0])
-    if time_hours == 0:
+    if time_hours == 0 or (time_hours == 12 and time_period == 'AM'):
       time_hours = 24
     elif time_period == 'AM' and time_hours < daysplit:
       time_hours += 24
