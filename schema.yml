@@ -56,7 +56,7 @@ profile-item:
   name: str()
   features: str()
   evaluator: str()
-  pathfinder: any(include('pathfinder-current-fulltext'), include('pathfinder-current-showcase'), include('pathfinder-external-fulltext'), include('pathfinder-external-showcase'), include('pathfinder-index'))
+  pathfinder: any(include('pathfinder-current-fulltext'), include('pathfinder-current-showcase'), include('pathfinder-external-fulltext'), include('pathfinder-external-showcase'), include('pathfinder-index'), required=False)
 
 pagers-dynamic:
   action: str()
