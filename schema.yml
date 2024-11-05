@@ -67,6 +67,7 @@ pathfinder-current-fulltext:
   type: enum('fulltext')
   pattern: str()
   format: enum('now', 'list')
+  indexer: str()
   value: str()
 pathfinder-current-showcase:
   target: enum('current')
