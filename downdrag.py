@@ -50,7 +50,7 @@ PATHFINDER_TYPE_FULLTEXT = 'fulltext'
 PATHFINDER_TYPE_SHOWCASE = 'showcase'
 PATHFINDER_FORMAT_NOW = 'now'
 PATHFINDER_FORMAT_LIST = 'list'
-LOGGING_FILE = 'downdrag_%s.log'
+LOGGING_FILE = 'logs/downdrag_%s.log'
 LOGGING_STEP_QUERY = 'querying with %s'
 LOGGING_STEP_OUTPUT = 'outputting with %s'
 LOGGING_STEP_TARGET = 'target %s'
@@ -317,7 +317,8 @@ if __name__ == "__main__":
   from sys import exit
   logging.basicConfig(filename=LOGGING_FILE % cleanfiledatetime(datetime.now()), level=logging.INFO)
   try: validate(make_schema(APPLICATION_CONFIG_SCHEMA), make_data(APPLICATION_CONFIG_FILENAME))
-  except:
+  except exc:
+    print(exc)
     print("Configuration isn't valid.")
     exit(-1)
   config = Configuration(APPLICATION_NAME)
