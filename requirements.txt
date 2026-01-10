@@ -1,4 +1,5 @@
-confuse==2.0.1
-lxml==4.9.3
-requests==2.32.4
-yamale==4.0.4
+confuse
+lxml
+pysocks
+requests
+yamale

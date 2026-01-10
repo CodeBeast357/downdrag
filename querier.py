@@ -91,31 +91,19 @@ class PlainDataQuerier(DataQuerier):
 
 class SecureDataQuerier(DataQuerier):
   def __enter__(self):
-    from requests import Session
-    from torpy import TorClient
-    from torpy.http.adapter import TorHttpAdapter
-    self.tor = TorClient()
-    self.guard = self.tor.get_guard()
-    self.adapter = TorHttpAdapter(self.guard, 3)
-    self.request = Session()
-    self.request.headers.update({'User-Agent': 'Mozilla/5.0'})
-    self.request.mount('http://', self.adapter)
-    self.request.mount('https://', self.adapter)
-    self.__get = self.request.get
-    self.__post = self.request.post
+    from requests import get, post
+    import socks
+    import socket
+    socks.set_default_proxy(socks.SOCKS5, "localhost", 9050)
+    socket.socket = socks.socksocket
+    self.__get = get
+    self.__post = post
     return self
   def __exit__(self, type, value, tb):
-    self.request.close()
-    self.adapter.close()
-    self.guard.close()
-    self.tor.close()
+    pass
   def get_content(self, link):
-    from torpy.guard import GuardState
-    if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
     return self.__get(link).content
   def post_content(self, link):
-    from torpy.guard import GuardState
-    if not self.guard or self.guard._state != GuardState.Connected: raise RuntimeError
     return self.__post(link).content
 
 class DynamicDataQuerier(DataQuerier):
