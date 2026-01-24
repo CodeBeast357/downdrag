@@ -21,10 +21,8 @@ outputs-mysql:
     tablename: str()
 outputs-html:
   html:
+    template: str()
     filename: str()
-    title: str(required=False)
-    scripts: list(str(), required=False)
-    styles: list(str(), required=False)
 
 details-item:
   type: enum('string', 'int', 'float', required=False)

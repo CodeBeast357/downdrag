@@ -1,5 +1,6 @@
 confuse
 lxml
+mako
 pysocks
 requests
 yamale

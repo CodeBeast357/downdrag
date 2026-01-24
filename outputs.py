@@ -6,10 +6,8 @@ KEY_MYSQL = 'mysql'
 KEY_MYSQL_CONNECTIONINFOS = 'connectioninfos'
 KEY_MYSQL_TABLENAME = 'tablename'
 KEY_HTML = 'html'
+KEY_HTML_TEMPLATE = 'template'
 KEY_HTML_FILENAME = 'filename'
-KEY_HTML_TITLE = 'title'
-KEY_HTML_SCRIPTS = 'scripts'
-KEY_HTML_STYLES = 'styles'
 
 DEFAULT_OUTPUT_DEFINITIONS = {
   KEY_CSV: lambda output_config, headers: CsvResultsWriter(output_config, headers),
@@ -112,62 +110,38 @@ class MySqlResultsWriter(ResultsWriter):
 class HtmlResultsWriter(ResultsWriter):
   def __init__(self, htmlconfig, headers):
     super().__init__(headers)
+    self.template = htmlconfig[KEY_HTML_TEMPLATE]
     self.filename = htmlconfig[KEY_HTML_FILENAME]
-    self.title = htmlconfig[KEY_HTML_TITLE] if KEY_HTML_TITLE in htmlconfig else None
-    self.scripts = htmlconfig[KEY_HTML_SCRIPTS] if KEY_HTML_SCRIPTS in htmlconfig else []
-    self.styles = htmlconfig[KEY_HTML_STYLES] if KEY_HTML_STYLES in htmlconfig else []
   def __enter__(self):
-    htmltitle = ("""
-    <title>%s</title>""" % self.title) if self.title else ''
-    self.output = open(self.filename, 'w', encoding='utf8')
-    self.output.write("""<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />%s""" % htmltitle)
-    for script in self.scripts:
-      self.output.write("""
-    <script src="%s"></script>""" % script)
-    for style in self.styles:
-      self.output.write("""
-    <link rel="stylesheet" type="text/css" href="%s" />""" % style)
-    self.output.write("""
-  </head>
-  <body>
-    <table id="data">
-      <thead>
-        <tr>""")
-    for h in self.headers:
-      self.output.write("""
-          <th>%s</th>""" % h)
-    self.output.write("""
-        </tr>
-      </thead>""")
+    from io import StringIO
+    from mako.template import Template
+    from mako.runtime import Context
+    self.data = {
+      'headers': self.headers,
+      'items': []
+    }
+    self.engine = Template(filename=self.template)
+    self.buffer = StringIO()
+    self.context = Context(self.buffer, data=self.data)
     return self
   def __exit__(self, type, value, tb):
-    self.output.write("""
-    </table>
-  </body>
-</html>""")
-    self.output.close()
+    self.item = None
+    self.engine.render_context(self.context)
+    with open(self.filename, 'w', encoding='utf8') as output:
+      output.write(self.buffer.getvalue())
+      output.close()
   def start_item(self, index):
-    self.output.write("""
-      <tr>
-        <td>%i</td>""" % index)
+    self.item = [index]
   def write_string(self, value):
-    self.output.write("""
-        <td>%s</td>""" % str(value).replace('\n', '<br/>'))
+    self.item.append(str(value).replace('\n', '<br/>'))
   def write_int(self, value):
-    self.output.write("""
-        <td>%i</td>""" % value)
+    self.item.append(value)
   def write_float(self, value):
-    self.output.write("""
-        <td>%f</td>""" % value)
+    self.item.append(value)
   def write_empty(self):
-    self.output.write("""
-        <td>&nbsp;</td>""")
+    self.item.append("&nbsp;")
   def end_item(self):
-    self.output.write("""
-      </tr>""")
+    self.data['items'].append(self.item)
 
 class PipelineResultsWriter(ResultsWriter):
   def __init__(self, outputsconfig, headers, results_writer_factory):
